@@ -1,0 +1,16 @@
+﻿node_modules
+.pnpm-store
+dist
+dist-types
+out
+release
+.vite
+coverage
+playwright-report
+test-results
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.env
+.env.*
