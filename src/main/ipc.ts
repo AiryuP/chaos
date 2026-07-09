@@ -1,7 +1,8 @@
 import { app, dialog, ipcMain } from 'electron'
 
 import { toAppError } from '../shared/errors'
-import { IPC_CHANNELS, type AppInfo, type IpcResult } from '../shared/ipc'
+import { IPC_CHANNELS, type AppInfo, type IpcResult, type SaveChapterInput } from '../shared/ipc'
+import { ChapterService } from './chapter/ChapterService'
 import { ProjectService } from './project/ProjectService'
 import { RecentProjectsService } from './recent/RecentProjectsService'
 
@@ -9,6 +10,7 @@ type IpcHandler<T, TArgs extends unknown[]> = (...args: TArgs) => Promise<T> | T
 
 export function registerIpcHandlers(): void {
   const projectService = new ProjectService()
+  const chapterService = new ChapterService()
   const recentProjectsService = new RecentProjectsService(app.getPath('userData'))
 
   handle(IPC_CHANNELS.getAppInfo, () => ({
@@ -55,6 +57,8 @@ export function registerIpcHandlers(): void {
 
     return project
   })
+
+  handle(IPC_CHANNELS.saveChapter, (input: SaveChapterInput) => chapterService.saveChapter(input))
 }
 
 async function selectExistingProjectPath(): Promise<string | null> {

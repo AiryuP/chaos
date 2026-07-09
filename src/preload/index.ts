@@ -6,7 +6,8 @@ const chaosApi: ChaosApi = {
   getAppInfo: () => invoke(IPC_CHANNELS.getAppInfo),
   createProject: () => invoke(IPC_CHANNELS.createProject),
   openProject: (path?: string) => invoke(IPC_CHANNELS.openProject, path),
-  getRecentProjects: () => invoke(IPC_CHANNELS.getRecentProjects)
+  getRecentProjects: () => invoke(IPC_CHANNELS.getRecentProjects),
+  saveChapter: (input) => invoke(IPC_CHANNELS.saveChapter, input)
 }
 
 function invoke<T>(channel: string, ...args: unknown[]): Promise<IpcResult<T>> {

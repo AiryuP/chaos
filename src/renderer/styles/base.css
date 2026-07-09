@@ -423,10 +423,22 @@ button:focus-visible {
   font-weight: 700;
 }
 
+.editor-tools .save-button {
+  width: auto;
+  min-width: 56px;
+  padding: 0 10px;
+}
+
 .editor-tools button.active {
   border-color: #b9dcff;
   background: var(--accent-soft);
   color: #075fc7;
+}
+
+.save-status {
+  align-self: center;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .editor-surface {

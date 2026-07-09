@@ -4,12 +4,12 @@
 
 ## Current Snapshot
 
-- Last updated: 2026-07-09
+- Last updated: 2026-07-10
 - Current milestone: `v0.1 Alpha - 基础本地写作闭环`
 - Primary branch: `main`
 - Remote: `origin` -> `git@github.com:AiryuP/chaos.git`
 - Last known local commit before today's uncommitted work: `cf78cfb`
-- Last code verification in this workspace: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` passed on 2026-07-09.
+- Last code verification in this workspace: `pnpm exec vitest run src/main/chapter/ChapterService.test.ts`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, and `pnpm build` passed on 2026-07-10 after the ChapterService save work.
 - Visual verification: not done by Codex; user verifies UI manually.
 
 ## Current Product / Architecture State
@@ -25,21 +25,22 @@
 
 - Electron + Vue 3 + TypeScript + Vite skeleton exists.
 - Preload exposes `window.chaos` with app/project APIs.
+- Preload is explicitly built as CommonJS `out/preload/index.cjs`; Electron main loads that file so `window.chaos` is injected in development.
 - Renderer guards against missing `window.chaos`; ordinary browser Vite pages cannot use local project APIs.
 - SQLite schema bootstrap exists for `project_meta`, `chapters`, and `chapters_fts`.
 - `ProjectService` can create and open local project folders with `.moqi/project.sqlite`, `chapters/`, `exports/`, and default `chapters/001.md`.
+- `ChapterService.saveChapter` can persist the active chapter's ProseMirror JSON to SQLite, update word count / `updated_at` / `version`, and sync the Markdown mirror.
+- Renderer writing workspace exposes a manual save action through `window.chaos.saveChapter`.
 - Recent project storage exists in Electron `userData`.
-- Writing workspace currently shows opened project chapters but does not yet save editor changes back to SQLite.
+- Writing workspace currently shows opened project chapters and can save the active chapter back to SQLite, but does not yet support chapter add/delete/rename/reorder.
 
 ## Next Work
 
-1. Implement `ChapterService` in the Electron main process.
-2. Add IPC and preload API for loading and saving chapters.
-3. Save Tiptap / ProseMirror JSON to SQLite.
-4. Update chapter word count, `updated_at`, and `version` on save.
-5. Sync Markdown mirror to `chapters/001.md` after save.
-6. Add focused tests for chapter save/load and Markdown mirror sync.
-7. Then implement TXT / Markdown export service and tests.
+1. Implement TXT / Markdown export service in the Electron main process.
+2. Add IPC and preload API for exporting projects.
+3. Export TXT / Markdown files into `exports/`.
+4. Add focused tests for export output.
+5. Then broaden the local writing loop checks across create/open/save/reopen/export.
 
 ## Known Runtime Notes
 

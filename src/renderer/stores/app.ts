@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-import type { Chapter, NovelProject } from '@shared/domain'
+import type { Chapter, NovelProject, ProseMirrorDoc } from '@shared/domain'
 import type { AppInfo, ChaosApi, IpcResult, RecentProject } from '@shared/ipc'
 
 const LOCAL_API_UNAVAILABLE_MESSAGE =
@@ -25,7 +25,9 @@ interface AppState {
   appInfo: AppInfo | null
   recentProjects: RecentProject[]
   isBusy: boolean
+  isSavingChapter: boolean
   errorMessage: string
+  saveMessage: string
 }
 
 export const useAppStore = defineStore('app', {
@@ -36,7 +38,9 @@ export const useAppStore = defineStore('app', {
     appInfo: null,
     recentProjects: [],
     isBusy: false,
-    errorMessage: ''
+    isSavingChapter: false,
+    errorMessage: '',
+    saveMessage: ''
   }),
   getters: {
     activeProjectName(state): string {
@@ -58,6 +62,7 @@ export const useAppStore = defineStore('app', {
     returnToLibrary(): void {
       this.activeShell = 'library'
       this.activeProject = null
+      this.saveMessage = ''
     },
     setProjectWorkspace(workspace: ProjectWorkspaceId): void {
       this.activeProjectWorkspace = workspace
@@ -125,6 +130,67 @@ export const useAppStore = defineStore('app', {
 
       await this.runProjectAction(() => api.openProject(path))
     },
+    async saveActiveChapter(content: ProseMirrorDoc): Promise<void> {
+      const api = getChaosApi()
+
+      if (!api) {
+        this.errorMessage = LOCAL_API_UNAVAILABLE_MESSAGE
+        return
+      }
+
+      const project = this.activeProject
+      const chapter = this.activeChapter
+
+      if (!project || !chapter) {
+        this.errorMessage = '没有可保存的章节'
+        return
+      }
+
+      if (!project.path) {
+        this.errorMessage = '当前作品缺少本地路径'
+        return
+      }
+
+      this.isSavingChapter = true
+      this.errorMessage = ''
+      this.saveMessage = ''
+
+      try {
+        const result = await api.saveChapter({
+          projectPath: project.path,
+          chapterId: chapter.id,
+          content
+        })
+
+        if (!result.ok) {
+          this.errorMessage = result.error.message
+          return
+        }
+
+        this.replaceSavedChapter(result.data)
+        this.saveMessage = '已保存'
+      } catch (error) {
+        this.errorMessage = toErrorMessage(error)
+      } finally {
+        this.isSavingChapter = false
+      }
+    },
+    replaceSavedChapter(chapter: Chapter): void {
+      if (!this.activeProject) {
+        return
+      }
+
+      const index = this.activeProject.chapters.findIndex((item) => item.id === chapter.id)
+
+      if (index >= 0) {
+        this.activeProject.chapters.splice(index, 1, chapter)
+      } else {
+        this.activeProject.chapters.push(chapter)
+      }
+
+      this.activeProject.activeChapterId = chapter.id
+      this.activeProject.updatedAt = chapter.updatedAt
+    },
     async runProjectAction(action: () => Promise<IpcResult<NovelProject | null>>): Promise<void> {
       this.isBusy = true
       this.errorMessage = ''
@@ -144,6 +210,7 @@ export const useAppStore = defineStore('app', {
         this.activeProject = result.data
         this.activeProjectWorkspace = 'writing'
         this.activeShell = 'project'
+        this.saveMessage = ''
         await this.loadRecentProjects()
       } catch (error) {
         this.errorMessage = toErrorMessage(error)

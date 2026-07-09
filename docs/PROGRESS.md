@@ -1,6 +1,6 @@
 ﻿# Chaos Progress
 
-最后更新：2026-07-09
+最后更新：2026-07-10
 
 ## Current Milestone
 
@@ -34,29 +34,29 @@
 - 实现最近项目记录服务，并将书架层 `新建作品`、`打开本地项目`、最近项目入口接入受控 IPC。
 - 增加项目服务测试，覆盖项目创建、SQLite 文件、默认章节 Markdown 镜像和重新打开恢复。
 - 增强 renderer 对 Electron preload 缺失的防护：本地能力 API 未加载时显示明确错误，不再抛出未捕获异常。
+- 修复 Electron preload 在 `type: module` 项目中输出为 ESM 导致开发运行时无法注入 `window.chaos` 的问题；preload 现在构建为 `out/preload/index.cjs`。
+- 实现 `ChapterService.saveChapter`：将 Tiptap / ProseMirror JSON 写回 SQLite，更新字数、更新时间和版本号，并同步章节 Markdown 镜像。
+- 接入 `chapter:save` IPC、preload `window.chaos.saveChapter`、renderer 写作页手动保存按钮和保存状态。
+- 增加章节保存服务测试，覆盖保存后重新打开恢复、版本/字数更新和 Markdown 镜像同步。
 - 建立两地开发交接规则：新增 handoff 文档，并要求跨设备切换前更新进度、验证状态和下一步任务。
 
 ## In Progress
 
-- 尚未实现章节保存 / 加载后的编辑写回。
-- 尚未实现保存后 Markdown 镜像更新。
 - 尚未实现 TXT / Markdown 导出。
 
 ## Next
 
 v0.1 的下一批任务：
 
-- 实现章节保存 IPC 和 `ChapterService`，将 Tiptap JSON 写回 SQLite。
-- 保存章节时同步更新 `chapters/001.md` Markdown 镜像。
 - 实现 TXT / Markdown 导出到 `exports/`。
-- 补充章节保存和导出的主进程服务测试。
+- 补充导出的主进程服务测试。
 
 ## Known Issues
 
 - 数据访问层暂定 Drizzle；如与 Electron 打包或 better-sqlite3 原生模块流程冲突，需要记录决策后调整。
 - 当前书架层已接入真实项目创建 / 打开和最近项目记录，但还没有删除、归档、搜索或标签。
-- 当前写作层能显示打开项目的章节骨架，但还没有保存编辑内容。
-- 写作层已确定借鉴 Ulysses 的低噪音三栏节奏，检查器、保存状态和导出流程仍需随 v0.1 本地服务接入继续实现。
+- 当前写作层能显示打开项目的章节骨架，并能手动保存当前章节内容；还没有章节新增、删除、重命名或排序。
+- 写作层已确定借鉴 Ulysses 的低噪音三栏节奏，检查器和导出流程仍需随 v0.1 本地服务接入继续实现。
 - `新建作品`、`打开本地项目` 依赖 Electron preload 暴露的 `window.chaos`；普通浏览器打开 Vite 页面时只能显示本地能力不可用提示。
 
 ## Verification Commands
@@ -67,6 +67,23 @@ v0.1 的下一批任务：
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm build
+```
+
+本次运行时修复验证：
+
+```powershell
+pnpm typecheck
+pnpm exec electron-vite build
+```
+
+本次章节保存闭环验证：
+
+```powershell
+pnpm exec vitest run src/main/chapter/ChapterService.test.ts
+pnpm typecheck
+pnpm test
+pnpm lint
 pnpm build
 ```
 

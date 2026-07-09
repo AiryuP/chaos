@@ -4,6 +4,8 @@ import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { computed, onBeforeUnmount, watch } from 'vue'
 
+import type { ProseMirrorDoc } from '@shared/domain'
+
 import { useAppStore } from '../stores/app'
 
 const appStore = useAppStore()
@@ -30,6 +32,8 @@ const wordCount = computed(() => {
   const text = editor.value?.getText().trim() ?? ''
   return text.length === 0 ? 0 : text.length
 })
+
+const canSave = computed(() => Boolean(editor.value && appStore.activeChapter && !appStore.isSavingChapter))
 
 watch(
   () => appStore.activeChapter?.id,
@@ -61,6 +65,16 @@ function runCommand(command: 'bold' | 'italic' | 'underline'): void {
   }
 
   chain.toggleUnderline().run()
+}
+
+async function saveCurrentChapter(): Promise<void> {
+  const content = editor.value?.getJSON()
+
+  if (!content) {
+    return
+  }
+
+  await appStore.saveActiveChapter(content as ProseMirrorDoc)
 }
 
 onBeforeUnmount(() => {
@@ -98,6 +112,20 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="editor-tools">
+          <span
+            v-if="appStore.saveMessage"
+            class="save-status"
+          >
+            {{ appStore.saveMessage }}
+          </span>
+          <button
+            type="button"
+            class="save-button"
+            :disabled="!canSave"
+            @click="saveCurrentChapter"
+          >
+            {{ appStore.isSavingChapter ? '保存中' : '保存' }}
+          </button>
           <button
             type="button"
             :class="{ active: editor?.isActive('bold') }"
