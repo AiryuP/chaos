@@ -10,6 +10,7 @@
 - `docs/ROADMAP.md`
 - `docs/MILESTONES.md`
 - `docs/PROGRESS.md`
+- `docs/HANDOFF.md`
 - `docs/DECISIONS.md`
 - `docs/DEFINITION_OF_DONE.md`
 - `docs/ARCHITECTURE.md`
@@ -139,9 +140,26 @@ pnpm test:e2e
 - 如果必须做运行态验证，优先复用已有服务和端口。
 - 只有现有服务不可用或用户明确要求时，才启动新服务。
 
+## 两地开发与交接规则
+
+用户会长期在不同地点、不同机器之间切换开发。GitHub 远端仓库和仓库内文档是跨设备同步的事实来源，聊天记录不能作为唯一上下文。
+
+每次开工前必须：
+
+- 先阅读 `docs/HANDOFF.md` 和 `docs/PROGRESS.md`，确认当前分支、最近验证结果、下一步任务和已知问题。
+- 先检查 `git status --short`、当前分支和远端状态；如果用户准备在本机继续开发，应先从 GitHub 拉取最新进度。
+- 如果发现本地工作区和远端状态冲突，先停下来说明风险，不要盲目覆盖或回滚。
+
+每次收工或准备换机器前必须：
+
+- 更新 `docs/PROGRESS.md` 和 `docs/HANDOFF.md`，写清楚完成了什么、没完成什么、最后跑过哪些验证命令、下一步从哪里接。
+- 确认所有需要同步到另一台机器的源码和文档都已准备提交；不要把 `node_modules/`、`out/`、`dist/`、`.pnpm-store/`、真实小说项目文件夹或密钥提交到 GitHub。
+- 如果代码还不能完全通过检查，可以提交明确标记的 WIP，但必须在 `docs/HANDOFF.md` 写明失败命令和阻塞点。
+
 ## Git 与进度规则
 
 - 不直接把 `node_modules/`、`dist/`、`out/`、`.pnpm-store/`、Electron 打包产物提交到 GitHub。
 - 每个阶段结束必须更新 `docs/PROGRESS.md`。
+- 每次跨设备切换前必须更新 `docs/HANDOFF.md`。
 - 重要技术选择必须记录到 `docs/DECISIONS.md`。
 - 任务范围变化先更新 Issue / milestone / docs，再改代码。

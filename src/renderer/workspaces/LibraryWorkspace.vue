@@ -1,87 +1,103 @@
+<script setup lang="ts">
+import { useAppStore } from '../stores/app'
+
+const appStore = useAppStore()
+</script>
+
 <template>
-  <main class="library-shell">
-    <aside class="app-rail">
-      <nav
-        class="rail-nav"
-        aria-label="一级导航"
+  <section class="library-main">
+    <header class="compact-header">
+      <div>
+        <h1>书架</h1>
+        <p>{{ appStore.recentProjects.length }} 个本地项目</p>
+      </div>
+
+      <div class="module-actions">
+        <button
+          type="button"
+          class="button secondary"
+          :disabled="appStore.isBusy"
+          @click="appStore.openProject()"
+        >
+          打开本地项目
+        </button>
+        <button
+          type="button"
+          class="button primary"
+          :disabled="appStore.isBusy"
+          @click="appStore.createProject()"
+        >
+          新建作品
+        </button>
+      </div>
+    </header>
+
+    <section class="library-section">
+      <div class="section-heading">
+        <h2>最近打开</h2>
+      </div>
+
+      <div
+        v-if="appStore.recentProjects.length === 0"
+        class="empty-line"
+      >
+        暂无最近作品
+      </div>
+
+      <div
+        v-else
+        class="recent-list"
       >
         <button
+          v-for="project in appStore.recentProjects.slice(0, 3)"
+          :key="project.path"
           type="button"
-          class="rail-item active"
+          class="recent-row"
+          :disabled="appStore.isBusy"
+          @click="appStore.openProject(project.path)"
         >
-          书架
+          <strong>{{ project.name }}</strong>
+          <span>{{ project.path }}</span>
         </button>
-        <button
-          type="button"
-          class="rail-item"
-          disabled
-        >
-          归档
-        </button>
-        <button
-          type="button"
-          class="rail-item"
-          disabled
-        >
-          设置
-        </button>
-      </nav>
-    </aside>
-
-    <section class="library-main">
-      <header class="module-header">
-        <div>
-          <h1>书架</h1>
-          <p>管理本地小说项目，打开作品后进入书内工作台。</p>
-        </div>
-
-        <div class="module-actions">
-          <button
-            type="button"
-            class="button secondary"
-            disabled
-          >
-            打开本地项目
-          </button>
-          <button
-            type="button"
-            class="button primary"
-            disabled
-          >
-            新建作品
-          </button>
-        </div>
-      </header>
-
-      <section class="library-section">
-        <div class="section-heading">
-          <h2>最近打开</h2>
-        </div>
-
-        <div class="recent-empty">
-          暂无最近作品
-        </div>
-      </section>
-
-      <section class="library-section">
-        <div class="section-heading">
-          <h2>全部作品</h2>
-        </div>
-
-        <div class="project-table">
-          <div class="project-row table-head">
-            <span>作品名</span>
-            <span>最近章节</span>
-            <span>字数</span>
-            <span>更新时间</span>
-            <span>路径</span>
-          </div>
-
-          <div class="project-empty-row">
-            还没有本地作品
-          </div>
-        </div>
-      </section>
+      </div>
     </section>
-  </main>
+
+    <section class="library-section">
+      <div class="section-heading">
+        <h2>全部作品</h2>
+      </div>
+
+      <div class="project-table">
+        <div class="project-row table-head">
+          <span>作品名</span>
+          <span>最近章节</span>
+          <span>字数</span>
+          <span>更新时间</span>
+          <span>路径</span>
+        </div>
+
+        <button
+          v-for="project in appStore.recentProjects"
+          :key="project.path"
+          type="button"
+          class="project-row project-data-row"
+          :disabled="appStore.isBusy"
+          @click="appStore.openProject(project.path)"
+        >
+          <span>{{ project.name }}</span>
+          <span>未命名章节</span>
+          <span>-</span>
+          <span>{{ new Date(project.updatedAt).toLocaleDateString() }}</span>
+          <span>{{ project.path }}</span>
+        </button>
+
+        <div
+          v-if="appStore.recentProjects.length === 0"
+          class="project-empty-row"
+        >
+          还没有本地作品
+        </div>
+      </div>
+    </section>
+  </section>
 </template>

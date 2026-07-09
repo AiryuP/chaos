@@ -82,3 +82,35 @@ Consequence:
 - MemoryPatch 是 AI 写入结构化记忆的默认入口。
 - Patch 必须有 before/after、证据、目标对象、置信度和状态。
 - 低风险自动写入和全自动写入只作为高级配置预留。
+
+## 2026-07-09 - v0.1 Bootstrap 使用显式 SQL 初始化项目库
+
+Decision: v0.1 的项目创建 / 打开服务先使用 `better-sqlite3` 执行显式 SQL 初始化 `project_meta`、`chapters` 和 `chapters_fts`。
+
+Reason:
+
+- 当前目标是先打通本地项目文件夹、SQLite 文件、默认章节和 Markdown 镜像这条最小闭环。
+- `chapters_fts` 是 SQLite FTS5 虚拟表，显式 SQL 比过早封装迁移工具更直接。
+- Electron + native SQLite 的运行和打包路径需要先稳定下来，再扩大数据访问抽象。
+
+Consequence:
+
+- Drizzle 仍是后续结构化数据访问的优先方向，不引入 Kysely 或其它数据层。
+- 新增业务表或复杂查询前，应补 Drizzle schema / typed query 层，避免 SQL 分散在 UI 或 IPC 中。
+- renderer 仍不得直接访问 SQLite；所有本地数据能力继续收敛在 main process。
+
+## 2026-07-09 - 使用 GitHub 和 Handoff 文档支撑两地开发
+
+Decision: Chaos 长期采用 GitHub 远端仓库 + `docs/HANDOFF.md` + `docs/PROGRESS.md` 作为跨设备开发的事实来源。
+
+Reason:
+
+- 用户会长期在不同地点、不同机器之间切换开发，需要无缝衔接当前进度。
+- 聊天上下文、dev server 状态、Electron 本地数据和构建产物都不能可靠同步。
+- 每次切换机器时，下一位开发会话必须能从仓库文档判断当前分支、最后验证、下一步任务和已知风险。
+
+Consequence:
+
+- 每次收工或准备换机器前，必须更新 `docs/HANDOFF.md` 和 `docs/PROGRESS.md`。
+- 未推送到 GitHub 的本地改动不视为已经同步，另一台机器不能假设这些改动存在。
+- 如果必须提交未完成状态，提交信息和 handoff 必须明确标记 WIP，并写清楚阻塞点。

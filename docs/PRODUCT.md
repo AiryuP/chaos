@@ -21,6 +21,17 @@ References:
 - Ulysses: quiet three-column writing rhythm and readable editor surface.
 - Obsidian Canvas / Scapple: visual thinking space for relationships and story structure.
 
+## Ulysses-Inspired Interface Rules
+
+Chaos borrows Ulysses' writing calm, not its full document model. Ulysses is useful as a UI reference in four ways:
+
+- Visual tone: quiet, modern, low-noise, with text and structure taking priority over decoration.
+- Writing layout: organization column + chapter/binder column + editor, with the editor as the visual center.
+- Interaction principle: keep persistent panels few; show inspectors, metadata, and auxiliary tools only when needed.
+- Control discipline: prefer lists, rows, separators, and compact toolbars over large cards, large radii, and decorative surfaces.
+
+Chaos should not copy Ulysses' library/group/sheet information model directly. Long-form novels need stronger project structure: volumes, chapters, outlines, storylines, memories, exports, and later AI review queues.
+
 Avoid:
 
 - Gradient-heavy landing-page layouts.
@@ -30,12 +41,20 @@ Avoid:
 
 ## Workspace Model
 
-The app has five first-class workspaces:
+Chaos has two shell levels:
+
+- App shell: library, archive, and global settings. This layer manages books, not book content.
+- Project shell: the workspace inside one opened book. This layer manages writing, structure, story data, export, and project settings.
+
+The app shell should stay closer to a local project manager. The project shell should stay closer to a professional writing desk.
+
+Inside a project, Chaos has first-class workspaces:
 
 - Writing: manuscript focus with a light inspector.
 - Outline: full-screen chapter and volume structure.
 - Storyline: full-screen timeline, graph canvas, and foreshadowing ledger.
 - Memory: patch review queue and double-domain memory map.
+- Export: TXT / Markdown export in v0.1, with DOCX / EPUB reserved for later.
 - Settings: provider, context, memory write policy, and export choices.
 
 Outline and storyline are not side widgets. They can occupy the full UI because authors often need to restructure the book without the editor stealing horizontal space.

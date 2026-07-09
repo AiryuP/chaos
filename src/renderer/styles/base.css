@@ -10,10 +10,12 @@
   --app-bg: #edf5fb;
   --rail-bg: #f7fbff;
   --surface: #ffffff;
+  --surface-subtle: #fbfdff;
   --line: #dce6ee;
   --line-soft: #e8f0f6;
   --text: #111827;
   --muted: #667085;
+  --muted-strong: #475467;
   --accent: #1687ff;
   --accent-soft: #e8f3ff;
   --danger: #b42318;
@@ -32,7 +34,7 @@ body {
 
 button {
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--surface);
   color: inherit;
   font: inherit;
@@ -45,7 +47,7 @@ button:not(:disabled) {
 
 button:disabled {
   cursor: default;
-  opacity: 0.58;
+  opacity: 0.55;
 }
 
 button:focus-visible {
@@ -53,94 +55,140 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-#app {
+#app,
+.app-frame {
   height: 100vh;
 }
 
 .app-frame {
-  height: 100%;
   background: var(--app-bg);
 }
 
-.library-shell {
+.app-shell,
+.project-shell {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
 
-.app-rail {
+.app-shell {
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+
+.project-shell {
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+
+.app-rail,
+.project-rail {
+  min-height: 0;
   border-right: 1px solid var(--line);
   background: var(--rail-bg);
-  padding: 16px 8px;
 }
 
-.rail-nav {
+.app-rail {
+  padding: 14px 8px;
+}
+
+.project-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 10px;
+}
+
+.rail-nav,
+.project-nav {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
-.rail-item {
+.rail-item,
+.project-nav button,
+.back-button {
   width: 100%;
-  min-height: 42px;
+  min-height: 36px;
   border-color: transparent;
   background: transparent;
-  color: #475467;
-  font-size: 15px;
+  color: var(--muted-strong);
+  font-size: 14px;
   font-weight: 600;
 }
 
-.rail-item.active {
-  border-color: #cfe5fb;
+.rail-item.active,
+.project-nav button.active {
+  border-left: 3px solid var(--accent);
+  border-radius: 0;
   background: var(--accent-soft);
   color: #075fc7;
 }
 
-.library-main {
+.back-button {
+  color: var(--accent);
+  text-align: left;
+}
+
+.project-name {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 2px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.library-main,
+.project-placeholder {
   min-width: 0;
   min-height: 0;
   padding: 18px 24px 24px;
 }
 
-.module-header {
+.compact-header {
   display: flex;
-  min-height: 70px;
+  min-height: 56px;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 20px;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 16px;
+  padding-bottom: 12px;
 }
 
-.module-header h1,
-.module-header p,
+.compact-header h1,
+.compact-header p,
 .section-heading h2,
-.recent-empty,
+.empty-line,
 .project-empty-row,
-.error-line {
+.error-line,
+.pane-header h2,
+.editor-header h1,
+.editor-header p {
   margin: 0;
 }
 
-.module-header h1 {
+.compact-header h1 {
   color: var(--text);
   font-size: 24px;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
-.module-header p {
-  margin-top: 5px;
+.compact-header p {
+  margin-top: 4px;
   color: var(--muted);
   font-size: 13px;
 }
 
-.module-actions {
+.module-actions,
+.editor-tools {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .button {
-  min-height: 34px;
-  padding: 0 13px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 14px;
   font-weight: 650;
 }
 
@@ -163,31 +211,68 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .section-heading h2 {
   color: #1d2939;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.3;
 }
 
-.recent-empty {
+.empty-line {
   display: flex;
-  min-height: 72px;
+  min-height: 56px;
   align-items: center;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--surface);
   color: var(--muted);
-  padding: 0 18px;
+  padding: 0 16px;
   font-size: 14px;
+}
+
+.recent-list {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+}
+
+.recent-row {
+  display: grid;
+  width: 100%;
+  min-height: 52px;
+  justify-items: start;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: 0;
+  padding: 8px 16px;
+  text-align: left;
+}
+
+.recent-row:last-child {
+  border-bottom: 0;
+}
+
+.recent-row strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.recent-row span {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-table {
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--surface);
 }
 
@@ -196,25 +281,181 @@ button:focus-visible {
   grid-template-columns: minmax(180px, 1.35fr) minmax(140px, 0.9fr) 96px 128px minmax(220px, 1.6fr);
   align-items: center;
   gap: 14px;
-  min-height: 42px;
+  min-height: 40px;
   padding: 0 16px;
+}
+
+.project-data-row {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--muted-strong);
+  text-align: left;
+}
+
+.project-data-row:hover:not(:disabled) {
+  background: var(--surface-subtle);
+}
+
+.project-data-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table-head {
   border-bottom: 1px solid var(--line-soft);
-  background: #fbfdff;
-  color: #667085;
+  background: var(--surface-subtle);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 700;
 }
 
 .project-empty-row {
   display: flex;
-  min-height: 96px;
+  min-height: 88px;
   align-items: center;
   justify-content: center;
   color: var(--muted);
   font-size: 14px;
+}
+
+.writing-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface);
+}
+
+.binder-pane {
+  min-height: 0;
+  border-right: 1px solid var(--line);
+  background: #f9fcff;
+  padding: 14px 12px;
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pane-header h2 {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.volume-row {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chapter-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  margin-top: 6px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+
+.chapter-row.active {
+  border-left: 3px solid var(--accent);
+  border-radius: 0;
+  background: var(--accent-soft);
+}
+
+.chapter-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chapter-row strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-pane {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.editor-header {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding: 0 20px;
+}
+
+.editor-header h1 {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.editor-header p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.editor-tools button {
+  width: 30px;
+  min-height: 28px;
+  padding: 0;
+  color: var(--muted-strong);
+  font-weight: 700;
+}
+
+.editor-tools button.active {
+  border-color: #b9dcff;
+  background: var(--accent-soft);
+  color: #075fc7;
+}
+
+.editor-surface {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.writing-editor {
+  width: min(760px, calc(100% - 96px));
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 44px 0 96px;
+  outline: none;
+  font-family:
+    "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "SimSun", serif;
+  font-size: 18px;
+  line-height: 1.9;
+}
+
+.writing-editor p {
+  margin: 0 0 1.1em;
+}
+
+.writing-editor h1,
+.writing-editor h2,
+.writing-editor h3 {
+  margin: 0 0 0.8em;
+  line-height: 1.4;
 }
 
 .error-line {
