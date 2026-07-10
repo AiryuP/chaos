@@ -4,5 +4,11 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 30_000,
   retries: 0,
-  reporter: [['list']]
+  workers: 1,
+  reporter: [['list']],
+  outputDir: 'test-results',
+  use: {
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure'
+  }
 })

@@ -47,6 +47,8 @@ Required:
 - Convert JSON to plain text.
 - Convert JSON to Markdown mirror.
 - Load JSON back into editor.
+- Track whether the active editor document differs from the last successful SQLite save.
+- Protect unsaved content when returning to the library or closing the application.
 
 Out of scope:
 

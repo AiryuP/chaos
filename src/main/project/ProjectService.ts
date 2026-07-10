@@ -1,11 +1,23 @@
 import Database from 'better-sqlite3'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { existsSync, mkdirSync, readdirSync, rmSync, rmdirSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
-import type { Chapter, NovelProject, ProseMirrorDoc, ProjectSettings } from '../../shared/domain'
-import { createEmptyDocument, prosemirrorToMarkdown, prosemirrorToPlainText } from '../../shared/document'
+import type {
+  Chapter,
+  NovelProject,
+  ProjectDetails,
+  ProjectSummary,
+  ProseMirrorDoc,
+  ProjectSettings
+} from '../../shared/domain'
+import { createEmptyDocument, prosemirrorToMarkdown } from '../../shared/document'
 import { initializeProjectDatabase } from '../db/schema'
+import {
+  atomicWriteTextFile,
+  resolveProjectFile,
+  type WriteTextFile
+} from '../fs/projectFiles'
 
 const PROJECT_DIR = '.moqi'
 const DATABASE_FILE = 'project.sqlite'
@@ -27,50 +39,87 @@ interface ChapterRow {
 }
 
 export class ProjectService {
-  createProjectAt(projectPath: string, projectName = basename(projectPath)): NovelProject {
+  constructor(private readonly writeTextFile: WriteTextFile = atomicWriteTextFile) {}
+
+  createProjectIn(projectLibraryPath: string, details: ProjectDetails): NovelProject {
+    if (projectLibraryPath.trim().length === 0) {
+      throw new Error('Project library path is required')
+    }
+
+    const projectId = randomUUID()
+    const projectPath = join(resolve(projectLibraryPath), projectId)
+
+    return this.createProject(projectPath, normalizeProjectDetails(details), projectId)
+  }
+
+  createProjectAt(projectPath: string, details: ProjectDetails | string): NovelProject {
+    return this.createProject(projectPath, normalizeProjectDetails(details), randomUUID())
+  }
+
+  private createProject(
+    projectPath: string,
+    details: ProjectDetails,
+    projectId: string
+  ): NovelProject {
     if (projectPath.trim().length === 0) {
       throw new Error('Project path is required')
     }
 
     const paths = getProjectPaths(projectPath)
+    const existingPaths = captureExistingPaths(paths)
+    const defaultMarkdownPath = resolveProjectFile(paths.rootPath, 'chapters/001.md')
 
     if (existsSync(paths.databasePath)) {
       throw new Error('This folder already contains a Chaos project')
     }
 
-    mkdirSync(paths.rootPath, { recursive: true })
-    mkdirSync(paths.metaPath, { recursive: true })
-    mkdirSync(paths.chaptersPath, { recursive: true })
-    mkdirSync(paths.exportsPath, { recursive: true })
-
-    const db = openDatabase(paths.databasePath)
+    if (existsSync(defaultMarkdownPath)) {
+      throw new Error('This folder already contains chapters/001.md')
+    }
 
     try {
-      initializeProjectDatabase(db)
+      mkdirSync(paths.rootPath, { recursive: true })
+      mkdirSync(paths.metaPath, { recursive: true })
+      mkdirSync(paths.chaptersPath, { recursive: true })
+      mkdirSync(paths.exportsPath, { recursive: true })
 
-      const now = new Date().toISOString()
-      const projectId = randomUUID()
-      const chapter = createDefaultChapter(now)
+      const db = openDatabase(paths.databasePath)
 
-      db.transaction(() => {
-        setProjectMeta(db, 'id', projectId)
-        setProjectMeta(db, 'name', projectName)
-        setProjectMeta(db, 'updatedAt', now)
-        setProjectMeta(db, 'activeChapterId', chapter.id)
-        setProjectMeta(db, 'schemaVersion', '1')
-        insertChapter(db, chapter)
-        indexChapter(db, chapter)
-      })()
+      try {
+        initializeProjectDatabase(db)
 
-      writeChapterMarkdown(paths.rootPath, chapter)
+        const now = new Date().toISOString()
+        const chapter = createDefaultChapter(now)
 
-      return this.openProjectAt(projectPath)
-    } finally {
-      db.close()
+        db.transaction(() => {
+          setProjectMeta(db, 'id', projectId)
+          setProjectMeta(db, 'name', details.name)
+          setProjectMeta(db, 'author', details.author)
+          setProjectMeta(db, 'genre', details.genre)
+          setProjectMeta(db, 'description', details.description)
+          setProjectMeta(db, 'updatedAt', now)
+          setProjectMeta(db, 'activeChapterId', chapter.id)
+          setProjectMeta(db, 'schemaVersion', '1')
+          insertChapter(db, chapter)
+        })()
+
+        writeChapterMarkdown(paths.rootPath, chapter, this.writeTextFile)
+      } finally {
+        db.close()
+      }
+
+      return this.openProjectAt(paths.rootPath)
+    } catch (error) {
+      cleanupFailedCreation(paths, existingPaths, defaultMarkdownPath)
+      throw error
     }
   }
 
   openProjectAt(projectPath: string): NovelProject {
+    if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+      throw new Error('Project path is required')
+    }
+
     const paths = getProjectPaths(projectPath)
 
     if (!existsSync(paths.databasePath)) {
@@ -84,13 +133,25 @@ export class ProjectService {
 
       const meta = readProjectMeta(db)
       const chapters = readChapters(db)
+      const activeChapterId = requireMeta(meta, 'activeChapterId')
+
+      if (chapters.length === 0) {
+        throw new Error('Project does not contain any chapters')
+      }
+
+      if (!chapters.some((chapter) => chapter.id === activeChapterId)) {
+        throw new Error('Project active chapter does not exist')
+      }
 
       return {
         id: requireMeta(meta, 'id'),
         name: requireMeta(meta, 'name'),
-        path: projectPath,
+        author: meta.get('author') ?? '',
+        genre: meta.get('genre') ?? '',
+        description: meta.get('description') ?? '',
+        path: paths.rootPath,
         updatedAt: requireMeta(meta, 'updatedAt'),
-        activeChapterId: requireMeta(meta, 'activeChapterId'),
+        activeChapterId,
         chapters,
         entities: [],
         events: [],
@@ -106,6 +167,78 @@ export class ProjectService {
       db.close()
     }
   }
+
+  listProjectsIn(projectLibraryPath: string): ProjectSummary[] {
+    if (typeof projectLibraryPath !== 'string' || projectLibraryPath.trim().length === 0) {
+      throw new Error('Project library path is required')
+    }
+
+    const resolvedLibraryPath = resolve(projectLibraryPath)
+
+    if (!existsSync(resolvedLibraryPath)) {
+      return []
+    }
+
+    return readdirSync(resolvedLibraryPath, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .flatMap((entry) => {
+        try {
+          return [this.readProjectSummaryAt(join(resolvedLibraryPath, entry.name))]
+        } catch {
+          return []
+        }
+      })
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+  }
+
+  private readProjectSummaryAt(projectPath: string): ProjectSummary {
+    const paths = getProjectPaths(projectPath)
+
+    if (!existsSync(paths.databasePath)) {
+      throw new Error('This folder does not contain .moqi/project.sqlite')
+    }
+
+    const db = openDatabase(paths.databasePath)
+
+    try {
+      initializeProjectDatabase(db)
+      const meta = readProjectMeta(db)
+
+      return {
+        name: requireMeta(meta, 'name'),
+        author: meta.get('author') ?? '',
+        genre: meta.get('genre') ?? '',
+        path: paths.rootPath,
+        updatedAt: requireMeta(meta, 'updatedAt')
+      }
+    } finally {
+      db.close()
+    }
+  }
+}
+
+function normalizeProjectDetails(details: ProjectDetails | string): ProjectDetails {
+  if (typeof details === 'string') {
+    return normalizeProjectDetails({
+      name: details,
+      author: '',
+      genre: '',
+      description: ''
+    })
+  }
+
+  const normalized = {
+    name: details.name.trim(),
+    author: details.author.trim(),
+    genre: details.genre.trim(),
+    description: details.description.trim()
+  }
+
+  if (normalized.name.length === 0) {
+    throw new Error('Project name is required')
+  }
+
+  return normalized
 }
 
 function getProjectPaths(rootPath: string): {
@@ -115,14 +248,15 @@ function getProjectPaths(rootPath: string): {
   chaptersPath: string
   exportsPath: string
 } {
-  const metaPath = join(rootPath, PROJECT_DIR)
+  const resolvedRootPath = resolve(rootPath)
+  const metaPath = join(resolvedRootPath, PROJECT_DIR)
 
   return {
-    rootPath,
+    rootPath: resolvedRootPath,
     metaPath,
     databasePath: join(metaPath, DATABASE_FILE),
-    chaptersPath: join(rootPath, 'chapters'),
-    exportsPath: join(rootPath, 'exports')
+    chaptersPath: join(resolvedRootPath, 'chapters'),
+    exportsPath: join(resolvedRootPath, 'exports')
   }
 }
 
@@ -218,17 +352,6 @@ function insertChapter(db: Database.Database, chapter: Chapter): void {
   })
 }
 
-function indexChapter(db: Database.Database, chapter: Chapter): void {
-  db.prepare(
-    `INSERT INTO chapters_fts (title, summary, plain_text)
-     VALUES (@title, @summary, @plainText)`
-  ).run({
-    title: chapter.title,
-    summary: chapter.summary,
-    plainText: prosemirrorToPlainText(chapter.content)
-  })
-}
-
 function readChapters(db: Database.Database): Chapter[] {
   const rows = db
     .prepare('SELECT * FROM chapters ORDER BY chapter_order ASC')
@@ -260,9 +383,65 @@ function parseDocument(contentJson: string): ProseMirrorDoc {
   return parsed
 }
 
-function writeChapterMarkdown(rootPath: string, chapter: Chapter): void {
+function writeChapterMarkdown(
+  rootPath: string,
+  chapter: Chapter,
+  writeTextFile: WriteTextFile
+): void {
   const body = prosemirrorToMarkdown(chapter.content)
   const markdown = body.length > 0 ? `# ${chapter.title}\n\n${body}\n` : `# ${chapter.title}\n`
 
-  writeFileSync(join(rootPath, chapter.markdownPath), markdown, 'utf8')
+  writeTextFile(resolveProjectFile(rootPath, chapter.markdownPath), markdown)
+}
+
+interface ExistingProjectPaths {
+  rootPath: boolean
+  metaPath: boolean
+  chaptersPath: boolean
+  exportsPath: boolean
+}
+
+function captureExistingPaths(paths: ReturnType<typeof getProjectPaths>): ExistingProjectPaths {
+  return {
+    rootPath: existsSync(paths.rootPath),
+    metaPath: existsSync(paths.metaPath),
+    chaptersPath: existsSync(paths.chaptersPath),
+    exportsPath: existsSync(paths.exportsPath)
+  }
+}
+
+function cleanupFailedCreation(
+  paths: ReturnType<typeof getProjectPaths>,
+  existingPaths: ExistingProjectPaths,
+  markdownPath: string
+): void {
+  for (const filePath of [
+    markdownPath,
+    `${paths.databasePath}-wal`,
+    `${paths.databasePath}-shm`,
+    paths.databasePath
+  ]) {
+    try {
+      rmSync(filePath, { force: true })
+    } catch {
+      // Keep the original creation error if cleanup cannot remove a reserved file.
+    }
+  }
+
+  removeDirectoryIfCreated(paths.exportsPath, existingPaths.exportsPath)
+  removeDirectoryIfCreated(paths.chaptersPath, existingPaths.chaptersPath)
+  removeDirectoryIfCreated(paths.metaPath, existingPaths.metaPath)
+  removeDirectoryIfCreated(paths.rootPath, existingPaths.rootPath)
+}
+
+function removeDirectoryIfCreated(path: string, existedBeforeCreation: boolean): void {
+  if (existedBeforeCreation || !existsSync(path)) {
+    return
+  }
+
+  try {
+    rmdirSync(path)
+  } catch {
+    // Preserve non-empty directories in case they contain files not created by Chaos.
+  }
 }

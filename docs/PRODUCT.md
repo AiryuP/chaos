@@ -61,17 +61,22 @@ Outline and storyline are not side widgets. They can occupy the full UI because 
 
 ## Local-First Storage
 
-Each project is a folder:
+Chaos 默认在应用私有数据目录中管理作品库，用户新建作品时只填写作品信息，不接触文件系统路径。全局设置允许用户把以后创建的作品改存到自定义目录，但不会静默移动已有作品。
+
+书架必须扫描当前托管作品库，并保留完整的已知作品索引；私有存储不能让较早作品因为“最近项目”数量限制而从 UI 中消失。
+
+每部作品仍是可独立打开和迁移的自包含文件夹：
 
 ```text
-Novel Project/
-  .moqi/
-    project.sqlite
-  chapters/
-    001.md
-  exports/
-    Novel Project.txt
-    Novel Project.md
+<application-user-data>/projects/
+  <project-id>/
+    .moqi/
+      project.sqlite
+    chapters/
+      001.md
+    exports/
+      Novel Project.txt
+      Novel Project.md
 ```
 
 SQLite is the source of truth for structured story data. Markdown mirrors keep chapters readable and portable.

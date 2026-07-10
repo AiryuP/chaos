@@ -6,15 +6,21 @@
   "main": "out/main/app.js",
   "packageManager": "pnpm@11.3.0",
   "scripts": {
-    "dev": "electron-vite dev",
+    "native:electron": "node scripts/ensure-electron-native.mjs",
+    "dev": "pnpm native:electron && electron-vite dev",
     "build": "pnpm typecheck && electron-vite build",
-    "preview": "electron-vite preview",
+    "preview": "pnpm native:electron && electron-vite preview",
     "lint": "eslint .",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test": "pnpm native:electron && node scripts/run-electron-node.mjs node_modules/vitest/vitest.mjs run",
+    "e2e:prepare": "pnpm native:electron && node scripts/run-electron-node.mjs scripts/prepare-e2e-fixture.mjs",
+    "test:e2e": "pnpm build && pnpm e2e:prepare && pnpm native:electron && playwright test",
+    "handoff:out": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/handoff-out.ps1",
+    "handoff:out:full": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/handoff-out.ps1 -RunE2E",
+    "handoff:in": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/handoff-in.ps1"
   },
   "dependencies": {
+    "@lucide/vue": "^1.23.0",
     "@tiptap/extension-underline": "^2.11.0",
     "@tiptap/starter-kit": "^2.11.0",
     "@tiptap/vue-3": "^2.11.0",
@@ -24,6 +30,7 @@
     "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.53.0",
     "@types/better-sqlite3": "^7.6.0",

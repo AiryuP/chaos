@@ -8,7 +8,7 @@
 
 ## Scope
 
-- 项目创建和打开。
+- 作品信息创建、软件私有作品库和已有项目打开。
 - Electron main/preload/renderer 的最小安全通信。
 - SQLite schema 作为结构化数据源。
 - 章节正文保存、加载、更新。
@@ -31,7 +31,7 @@
 ## Acceptance Criteria
 
 - `pnpm dev` 能启动桌面开发环境。
-- 新建项目后磁盘出现 `.moqi/project.sqlite`、`chapters/`、`exports/`。
+- 新建作品时不要求选择目录，创建后软件私有作品库中出现 `.moqi/project.sqlite`、`chapters/`、`exports/`。
 - 写入一章后关闭项目，再打开仍能恢复内容。
 - Markdown 镜像与章节标题/正文基本一致。
 - TXT / Markdown 导出文件可打开。

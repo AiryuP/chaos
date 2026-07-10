@@ -1,11 +1,16 @@
 import Database from 'better-sqlite3'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 import type { Chapter, ProseMirrorDoc } from '../../shared/domain'
 import { prosemirrorToMarkdown, prosemirrorToPlainText } from '../../shared/document'
-import type { SaveChapterInput } from '../../shared/ipc'
+import type { SaveChapterInput, SaveChapterOutput } from '../../shared/ipc'
 import { initializeProjectDatabase } from '../db/schema'
+import {
+  atomicWriteTextFile,
+  resolveProjectFile,
+  type WriteTextFile
+} from '../fs/projectFiles'
 
 const PROJECT_DIR = '.moqi'
 const DATABASE_FILE = 'project.sqlite'
@@ -26,11 +31,13 @@ interface ChapterRow {
 }
 
 export class ChapterService {
-  saveChapter(input: SaveChapterInput): Chapter {
-    const projectPath = requireText(input?.projectPath, 'Project path is required')
+  constructor(private readonly writeTextFile: WriteTextFile = atomicWriteTextFile) {}
+
+  saveChapter(input: SaveChapterInput): SaveChapterOutput {
+    const projectPath = resolve(requireText(input?.projectPath, 'Project path is required'))
     const chapterId = requireText(input?.chapterId, 'Chapter id is required')
     const content = requireDocument(input?.content)
-    const databasePath = join(projectPath, PROJECT_DIR, DATABASE_FILE)
+    const databasePath = resolveProjectFile(projectPath, `${PROJECT_DIR}/${DATABASE_FILE}`)
 
     if (!existsSync(databasePath)) {
       throw new Error('This folder does not contain .moqi/project.sqlite')
@@ -54,12 +61,22 @@ export class ChapterService {
       db.transaction(() => {
         updateChapter(db, updated)
         setProjectMeta(db, 'updatedAt', now)
-        indexChapter(db, updated)
       })()
 
-      writeChapterMarkdown(projectPath, updated)
+      try {
+        writeChapterMarkdown(projectPath, updated, this.writeTextFile)
+      } catch (error) {
+        return {
+          chapter: updated,
+          mirrorSynced: false,
+          warning: createMirrorWarning(error)
+        }
+      }
 
-      return updated
+      return {
+        chapter: updated,
+        mirrorSynced: true
+      }
     } finally {
       db.close()
     }
@@ -161,22 +178,19 @@ function setProjectMeta(db: Database.Database, key: string, value: string): void
   ).run({ key, value })
 }
 
-function indexChapter(db: Database.Database, chapter: Chapter): void {
-  db.prepare(
-    `INSERT INTO chapters_fts (title, summary, plain_text)
-     VALUES (@title, @summary, @plainText)`
-  ).run({
-    title: chapter.title,
-    summary: chapter.summary,
-    plainText: prosemirrorToPlainText(chapter.content)
-  })
-}
-
-function writeChapterMarkdown(rootPath: string, chapter: Chapter): void {
+function writeChapterMarkdown(
+  rootPath: string,
+  chapter: Chapter,
+  writeTextFile: WriteTextFile
+): void {
   const body = prosemirrorToMarkdown(chapter.content)
   const markdown = body.length > 0 ? `# ${chapter.title}\n\n${body}\n` : `# ${chapter.title}\n`
-  const markdownPath = join(rootPath, chapter.markdownPath)
+  const markdownPath = resolveProjectFile(rootPath, chapter.markdownPath)
 
-  mkdirSync(dirname(markdownPath), { recursive: true })
-  writeFileSync(markdownPath, markdown, 'utf8')
+  writeTextFile(markdownPath, markdown)
+}
+
+function createMirrorWarning(error: unknown): string {
+  const detail = error instanceof Error ? error.message : 'unknown file system error'
+  return `正文已保存，但 Markdown 镜像同步失败：${detail}`
 }

@@ -5,17 +5,18 @@
 ## Project Folder
 
 ```text
-Novel Project/
-  .moqi/
-    project.sqlite
-  chapters/
-    001.md
-  exports/
-    Novel Project.txt
-    Novel Project.md
+<application-user-data>/projects/
+  <project-id>/
+    .moqi/
+      project.sqlite
+    chapters/
+      001.md
+    exports/
+      Novel Project.txt
+      Novel Project.md
 ```
 
-SQLite 是事实来源。Markdown 是可读镜像。
+默认作品库位于软件私有数据目录；用户可在全局设置中修改以后新作品的存放位置。作品名称是 SQLite 元数据，不依赖文件夹名称。SQLite 是事实来源，Markdown 是可读镜像。
 
 ## Core Types
 
@@ -25,6 +26,9 @@ SQLite 是事实来源。Markdown 是可读镜像。
 interface NovelProject {
   id: string
   name: string
+  author: string
+  genre: string
+  description: string
   path?: string
   updatedAt: string
   activeChapterId: string
@@ -263,5 +267,10 @@ CREATE VIRTUAL TABLE chapters_fts USING fts5(
 - Preserve explicit status enums in TypeScript.
 - Keep `chapter_order` stable and sortable.
 - Store dates as ISO strings.
+- Store `name`, `author`, `genre`, and `description` in `project_meta`; opening older projects treats missing optional fields as empty strings.
 - Store ProseMirror JSON as JSON text in `content_json`.
 - Do not treat Markdown mirror files as source of truth unless implementing explicit import/recovery flow.
+- Use SQLite `PRAGMA user_version` for ordered schema migrations. The current v0.1 schema version is `1`.
+- Reject databases with a schema version newer than the running Chaos build supports.
+- `chapters_fts` is reserved for v0.2 search and is not kept in sync during v0.1 saves.
+- Project-relative file paths must resolve inside the project folder before any write.

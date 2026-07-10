@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ArrowLeft, Brain, FileOutput, ListTree, PenLine, Route, Settings } from '@lucide/vue'
+import type { Component } from 'vue'
 
-import { projectWorkspaceItems, useAppStore } from '../stores/app'
+import {
+  projectWorkspaceItems,
+  type ProjectWorkspaceId,
+  useAppStore
+} from '../stores/app'
+import ExportWorkspace from '../workspaces/ExportWorkspace.vue'
 import WritingWorkspace from '../workspaces/WritingWorkspace.vue'
 
 const appStore = useAppStore()
-
-const activeWorkspace = computed(
-  () =>
-    projectWorkspaceItems.find((workspace) => workspace.id === appStore.activeProjectWorkspace) ??
-    projectWorkspaceItems[0]
-)
+const workspaceIcons: Record<ProjectWorkspaceId, Component> = {
+  writing: PenLine,
+  outline: ListTree,
+  storyline: Route,
+  memory: Brain,
+  export: FileOutput,
+  settings: Settings
+}
 </script>
 
 <template>
@@ -19,12 +27,17 @@ const activeWorkspace = computed(
       <button
         type="button"
         class="back-button"
-        @click="appStore.returnToLibrary"
+        aria-label="返回书架"
+        @click="appStore.requestReturnToLibrary"
       >
-        书架
+        <ArrowLeft :size="17" />
+        <span>书架</span>
       </button>
 
-      <div class="project-name">
+      <div
+        class="project-name"
+        :title="appStore.activeProjectName"
+      >
         {{ appStore.activeProjectName || '未打开作品' }}
       </div>
 
@@ -37,25 +50,20 @@ const activeWorkspace = computed(
           :key="workspace.id"
           type="button"
           :class="{ active: workspace.id === appStore.activeProjectWorkspace }"
+          :disabled="!workspace.available"
+          :aria-current="workspace.id === appStore.activeProjectWorkspace ? 'page' : undefined"
           @click="appStore.setProjectWorkspace(workspace.id)"
         >
-          {{ workspace.label }}
+          <component
+            :is="workspaceIcons[workspace.id]"
+            :size="17"
+          />
+          <span>{{ workspace.label }}</span>
         </button>
       </nav>
     </aside>
 
-    <WritingWorkspace v-if="appStore.activeProjectWorkspace === 'writing'" />
-
-    <section
-      v-else
-      class="project-placeholder"
-    >
-      <header class="compact-header">
-        <div>
-          <h1>{{ activeWorkspace.label }}</h1>
-          <p>该工作区会独占主界面，后续按书内结构单独实现。</p>
-        </div>
-      </header>
-    </section>
+    <WritingWorkspace v-show="appStore.activeProjectWorkspace === 'writing'" />
+    <ExportWorkspace v-show="appStore.activeProjectWorkspace === 'export'" />
   </main>
 </template>

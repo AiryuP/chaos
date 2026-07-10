@@ -141,9 +141,27 @@ export interface ProjectSettings {
   autoExportFormats: ExportFormat[]
 }
 
+export interface ProjectDetails {
+  name: string
+  author: string
+  genre: string
+  description: string
+}
+
+export interface ProjectSummary {
+  name: string
+  author: string
+  genre: string
+  path: string
+  updatedAt: string
+}
+
 export interface NovelProject {
   id: string
   name: string
+  author: string
+  genre: string
+  description: string
   path?: string
   updatedAt: string
   activeChapterId: string

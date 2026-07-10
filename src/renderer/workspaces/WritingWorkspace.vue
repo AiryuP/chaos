@@ -2,7 +2,15 @@
 import Underline from '@tiptap/extension-underline'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { computed, onBeforeUnmount, watch } from 'vue'
+import {
+  Bold as BoldIcon,
+  Italic as ItalicIcon,
+  Redo2,
+  Save,
+  Underline as UnderlineIcon,
+  Undo2
+} from '@lucide/vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 
 import type { ProseMirrorDoc } from '@shared/domain'
 
@@ -19,12 +27,15 @@ const editor = useEditor({
     }),
     Underline
   ],
-  content: appStore.activeChapter?.content ?? '<p></p>',
+  content: appStore.activeDraft ?? appStore.activeChapter?.content ?? '<p></p>',
   editorProps: {
     attributes: {
       class: 'writing-editor',
       spellcheck: 'true'
     }
+  },
+  onUpdate: ({ editor: currentEditor }) => {
+    appStore.updateActiveChapterDraft(currentEditor.getJSON() as ProseMirrorDoc)
   }
 })
 
@@ -33,7 +44,14 @@ const wordCount = computed(() => {
   return text.length === 0 ? 0 : text.length
 })
 
-const canSave = computed(() => Boolean(editor.value && appStore.activeChapter && !appStore.isSavingChapter))
+const canSave = computed(() =>
+  Boolean(
+    editor.value &&
+      appStore.activeChapter &&
+      appStore.hasUnsavedChanges &&
+      !appStore.isSavingChapter
+  )
+)
 
 watch(
   () => appStore.activeChapter?.id,
@@ -41,10 +59,9 @@ watch(
     const chapter = appStore.activeChapter
 
     if (chapter && editor.value) {
-      editor.value.commands.setContent(chapter.content)
+      editor.value.commands.setContent(appStore.activeDraft ?? chapter.content, false)
     }
-  },
-  { immediate: true }
+  }
 )
 
 function runCommand(command: 'bold' | 'italic' | 'underline'): void {
@@ -67,17 +84,37 @@ function runCommand(command: 'bold' | 'italic' | 'underline'): void {
   chain.toggleUnderline().run()
 }
 
-async function saveCurrentChapter(): Promise<void> {
-  const content = editor.value?.getJSON()
+function runHistoryCommand(command: 'undo' | 'redo'): void {
+  const chain = editor.value?.chain().focus()
 
-  if (!content) {
+  if (!chain) {
     return
   }
 
-  await appStore.saveActiveChapter(content as ProseMirrorDoc)
+  if (command === 'undo') {
+    chain.undo().run()
+    return
+  }
+
+  chain.redo().run()
 }
 
+function handleKeydown(event: KeyboardEvent): void {
+  if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') {
+    return
+  }
+
+  event.preventDefault()
+
+  if (canSave.value) {
+    void appStore.saveActiveChapter()
+  }
+}
+
+onMounted(() => document.addEventListener('keydown', handleKeydown))
+
 onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
   editor.value?.destroy()
 })
 </script>
@@ -89,15 +126,15 @@ onBeforeUnmount(() => {
         <h2>手稿</h2>
       </header>
 
-      <div class="volume-row">
-        正文
-      </div>
+      <div class="volume-row">正文</div>
 
       <button
         v-for="chapter in appStore.activeProject?.chapters ?? []"
         :key="chapter.id"
         type="button"
-        class="chapter-row active"
+        class="chapter-row"
+        :class="{ active: chapter.id === appStore.activeChapter?.id }"
+        :aria-current="chapter.id === appStore.activeChapter?.id ? 'page' : undefined"
       >
         <span>{{ String(chapter.order).padStart(3, '0') }}</span>
         <strong>{{ chapter.title }}</strong>
@@ -113,45 +150,76 @@ onBeforeUnmount(() => {
 
         <div class="editor-tools">
           <span
-            v-if="appStore.saveMessage"
             class="save-status"
+            :class="`is-${appStore.saveStatusTone}`"
+            :title="appStore.saveNotice?.message"
           >
-            {{ appStore.saveMessage }}
+            <span class="status-dot" />
+            {{ appStore.saveStatusLabel }}
           </span>
           <button
             type="button"
             class="save-button"
             :disabled="!canSave"
-            @click="saveCurrentChapter"
+            title="保存章节 (Ctrl+S)"
+            @click="appStore.saveActiveChapter"
           >
-            {{ appStore.isSavingChapter ? '保存中' : '保存' }}
+            <Save :size="15" />
+            <span>保存</span>
+          </button>
+          <span class="tool-divider" />
+          <button
+            type="button"
+            class="icon-button"
+            :disabled="!editor"
+            title="撤销"
+            aria-label="撤销"
+            @click="runHistoryCommand('undo')"
+          >
+            <Undo2 :size="16" />
           </button>
           <button
             type="button"
+            class="icon-button"
+            :disabled="!editor"
+            title="重做"
+            aria-label="重做"
+            @click="runHistoryCommand('redo')"
+          >
+            <Redo2 :size="16" />
+          </button>
+          <button
+            type="button"
+            class="icon-button"
             :class="{ active: editor?.isActive('bold') }"
             :disabled="!editor"
-            title="加粗"
+            title="粗体"
+            aria-label="粗体"
             @click="runCommand('bold')"
           >
-            B
+            <BoldIcon :size="16" />
           </button>
           <button
             type="button"
+            class="icon-button"
             :class="{ active: editor?.isActive('italic') }"
             :disabled="!editor"
             title="斜体"
+            aria-label="斜体"
             @click="runCommand('italic')"
           >
-            I
+            <ItalicIcon :size="16" />
           </button>
           <button
             type="button"
+            class="icon-button"
             :class="{ active: editor?.isActive('underline') }"
             :disabled="!editor"
             title="下划线"
+            aria-label="下划线"
             @click="runCommand('underline')"
           >
-            U
+            <UnderlineIcon :size="16" />
           </button>
         </div>
       </header>

@@ -33,19 +33,20 @@ describe('ChapterService', () => {
       content
     })
 
-    expect(saved.content).toEqual(content)
-    expect(saved.wordCount).toBe(prosemirrorToPlainText(content).trim().length)
-    expect(saved.version).toBe(chapter.version + 1)
+    expect(saved.chapter.content).toEqual(content)
+    expect(saved.chapter.wordCount).toBe(prosemirrorToPlainText(content).trim().length)
+    expect(saved.chapter.version).toBe(chapter.version + 1)
+    expect(saved.mirrorSynced).toBe(true)
 
     const reopened = projectService.openProjectAt(projectPath)
     const reopenedChapter = reopened.chapters[0]
 
-    expect(reopened.updatedAt).toBe(saved.updatedAt)
+    expect(reopened.updatedAt).toBe(saved.chapter.updatedAt)
     expect(reopenedChapter.content).toEqual(content)
-    expect(reopenedChapter.wordCount).toBe(saved.wordCount)
-    expect(reopenedChapter.version).toBe(saved.version)
+    expect(reopenedChapter.wordCount).toBe(saved.chapter.wordCount)
+    expect(reopenedChapter.version).toBe(saved.chapter.version)
 
-    const markdown = readFileSync(join(projectPath, saved.markdownPath), 'utf8')
+    const markdown = readFileSync(join(projectPath, saved.chapter.markdownPath), 'utf8')
 
     expect(markdown).toContain('The rain falls on the old roof.')
     expect(markdown).toContain('**Stay quiet.**')
@@ -66,6 +67,29 @@ describe('ChapterService', () => {
         content: createDraftContent()
       })
     ).toThrow('Chapter not found')
+  })
+
+  it('keeps the sqlite save successful when the markdown mirror cannot be written', () => {
+    const root = createTempProjectRoot()
+    const projectPath = join(root, 'MirrorWarningBook')
+    const projectService = new ProjectService()
+    const project = projectService.createProjectAt(projectPath, 'Mirror Warning Book')
+    const chapter = project.chapters[0]
+    const chapterService = new ChapterService(() => {
+      throw new Error('disk is read-only')
+    })
+
+    const saved = chapterService.saveChapter({
+      projectPath,
+      chapterId: chapter.id,
+      content: createDraftContent()
+    })
+
+    expect(saved.mirrorSynced).toBe(false)
+    expect(saved.warning).toContain('disk is read-only')
+    expect(projectService.openProjectAt(projectPath).chapters[0].content).toEqual(
+      createDraftContent()
+    )
   })
 })
 
