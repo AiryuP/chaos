@@ -135,7 +135,8 @@ node_modules\.bin\playwright.CMD test --list
 - `pnpm test`：8 个测试文件、21 个测试通过。
 - `pnpm build`：main、preload、renderer 构建通过。
 - `pnpm test:e2e`：1 个 Electron 私有项目创建与本地写作闭环测试通过。
-- PowerShell `handoff-in` / `handoff-out`：语法解析通过；`handoff-in` 将在推送后用干净工作区做首次远端恢复验证。
+- PowerShell `handoff-in` / `handoff-out`：语法解析通过；`handoff-out` 门禁和干净工作区下的远端 `handoff-in` 恢复均验证通过。
+- 首次 `develop` GitHub Actions 已通过：基础验证与 Electron E2E 均成功，运行记录为 `https://github.com/AiryuP/chaos/actions/runs/29078975878`。
 - 新 UI 的最终视觉验收未由 Codex 执行，按项目规则交由用户确认。
 
 端到端检查按需运行：

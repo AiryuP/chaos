@@ -57,7 +57,7 @@ Results:
 - E2E tests: 1 Electron local writing loop passed.
 - Production build: Electron main, preload and renderer passed.
 - PowerShell handoff scripts: parser check passed; `handoff-out` completed its branch, safety, lint, typecheck, unit test and build gates.
-- GitHub Actions: configured for `develop` and `main`; the first remote `develop` run starts after this handoff is pushed.
+- GitHub Actions: the first `develop` run for implementation commit `6be1d23` passed `verify` and Electron E2E: `https://github.com/AiryuP/chaos/actions/runs/29078975878`.
 - Final UI visual acceptance: pending user verification.
 
 ## Native Module Notes
