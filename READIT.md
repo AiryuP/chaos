@@ -1,203 +1,47 @@
-﻿# 在不同电脑上用 Codex 继续开发 Chaos 的操作手册
+# 在不同电脑上继续开发 Chaos
 
-这份文件用于把项目上传 GitHub 后，在家或另一台电脑继续用 Codex 开发，并尽量保证项目不跑偏。
+本文件只说明跨设备开发方式，其它项目事实由对应文档维护。
 
-## 1. 仓库里必须放这些文件
+## 事实来源
 
-项目根目录应长期维护：
+- `AGENTS.md`：长期协作原则。
+- `docs/PROGRESS.md`：当前真实实现和未完成内容。
+- `docs/HANDOFF.md`：上一次跨设备交接状态。
+- `docs/DECISIONS.md`：需要长期追溯的重要决定。
+- GitHub 远端：已经同步到其它设备的源码和文档。
 
-```text
-AGENTS.md
-docs/PRODUCT.md
-docs/ROADMAP.md
-docs/MILESTONES.md
-docs/PROGRESS.md
-docs/DECISIONS.md
-docs/DEFINITION_OF_DONE.md
-docs/ARCHITECTURE.md
-docs/DATA_MODEL.md
-docs/EDITOR_MODEL.md
-READIT.md
-```
+版本号和 Milestone 只用于查看进度。需求超出当前版本参考时，由 Codex 提示影响，用户决定是否继续。
 
-作用：
+## 分支
 
-- `AGENTS.md`：Codex 必须遵守的项目规则。
-- `docs/PRODUCT.md`：产品定位和 UI 风格。
-- `docs/ROADMAP.md`：长期路线。
-- `docs/MILESTONES.md`：当前阶段目标和验收范围。
-- `docs/PROGRESS.md`：已完成、正在做、下一步、阻塞项。
-- `docs/DECISIONS.md`：架构和产品决策记录。
-- `docs/DEFINITION_OF_DONE.md`：什么叫做完。
-- `docs/ARCHITECTURE.md`：Electron/Vue/SQLite 架构边界。
-- `docs/DATA_MODEL.md`：核心领域模型和数据库契约。
-- `docs/EDITOR_MODEL.md`：Tiptap/ProseMirror 正文模型。
-- `READIT.md`：跨设备继续开发操作说明。
+- `main`：稳定分支。
+- `develop`：当前持续开发和跨设备同步分支。
 
-## 2. 每次开工前的固定提示词
+不再要求固定通过 PR 合并。何时以及用什么方式把 `develop` 同步到 `main`，由用户决定。
 
-推荐直接对 Codex 说：
+## 离开当前电脑
 
-```text
-我们现在在 Chaos 项目。
-请先阅读 AGENTS.md 和 docs/ 下的核心文档。
-本次只处理 v0.1 范围内的任务。
-在改代码前，请先说明：
-1. 本次目标
-2. 不做什么
-3. 会改哪些模块
-4. 验收命令
-确认理解后再开始实现。
-```
+用户说“我下班了”“我要休息了”或 `handoff-out` 时，表示准备把当前工作同步到另一台电脑。
 
-如果任务来自 Issue，把 Issue 编号和内容一起贴上。
+交接需要确认：
 
-更简单的跨设备恢复方式是直接对 Codex 说：
+- 当前改动属于项目且不包含密钥、真实小说数据或生成目录。
+- `docs/HANDOFF.md` 记录了跨设备继续所需的分支、提交、未完成事项和机器相关风险。
+- 需要同步的改动已经提交并推送，远端确实包含对应提交。
+- 工作区没有意外遗漏的源码或文档。
 
-```text
-我到家了
-```
+仓库当前仍保留 `pnpm handoff:out` 和 `pnpm handoff:out:full`。脚本及 CI 中现有检查是否简化，等待用户单独决定。
 
-或者：
+## 进入另一台电脑
 
-```text
-我来公司了
-```
-
-Codex 会按 `AGENTS.md` 执行 `handoff-in`：拒绝覆盖本地修改、拉取固定 `develop`、恢复依赖并阅读交接文档。
-
-## 3. 用 Issue 控制任务
-
-不要说：
-
-```text
-继续完善编辑器
-```
-
-要说：
-
-```md
-## Goal
-实现 v0.1 的真实项目创建/打开。
-
-## Scope
-- 选择项目目录
-- 创建 .moqi/project.sqlite
-- 创建 chapters/ 和 exports/
-- 通过 Electron IPC 接入 createProject / openProject
-
-## Out of Scope
-- 不做 AI
-- 不做 DOCX/EPUB
-- 不做故事图谱编辑
-
-## Acceptance Criteria
-- pnpm dev 能启动
-- 新建项目后磁盘结构正确
-- 关闭重开后项目能恢复
-- pnpm lint/typecheck/test/build 通过
-```
-
-## 4. 每个阶段用 Milestone 锁死
-
-建议创建这些 milestone：
-
-```text
-v0.1 Alpha - 基础本地写作闭环
-v0.2 Writing UX - 章节与写作体验
-v0.3 Storyline - 大纲与故事线工作台
-v0.4 AI Assist - 可控 AI 建议
-v0.5 Auto Dream - 手动潜意识整理
-```
-
-当前只允许做 `v0.1 Alpha` 里的 Issue。新想法先进 Backlog，不要插队。
-
-## 5. 分支和 PR 规则
-
-当前两地开发使用固定分支：
-
-```powershell
-main     # 稳定分支
-develop  # 公司和家里持续交接的开发分支
-```
-
-日常开发和跨设备切换都使用 `develop`。阶段完成并通过验收后，再通过 PR 合并到 `main`。
-
-开发完后按改动范围运行必要检查：
-
-```powershell
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-PR 描述必须写：
-
-```md
-## What changed
-
-## What was intentionally not changed
-
-## Verification
-```
-
-## 6. 两个交接动作
-
-离开当前电脑时，对 Codex 说“我下班了”“我要休息了”或 `handoff-out`。Codex 会更新交接文档、运行检查、提交并推送 `develop`，只有确认远端一致和工作区干净后才算完成。
-
-进入另一台电脑时，对 Codex 说“我到家了”“我来公司了”或 `handoff-in`。Codex 会运行：
+用户说“我到家了”“我来公司了”或 `handoff-in` 时，先确认本地没有未处理修改，再运行：
 
 ```powershell
 pnpm handoff:in
 ```
 
-脚本不会自动 stash、merge、reset 或覆盖本地修改，也不会启动或重启 dev server。
+该脚本会获取 `origin/develop`、以 `ff-only` 更新本地分支、恢复锁定依赖并检查 Electron 原生模块。它不会自动 `stash`、合并、`reset`、覆盖本地修改，也不会启动开发服务。
 
-### 家里电脑第一次获取当前实现
+## 冲突处理
 
-如果还没有克隆仓库：
-
-```powershell
-git clone git@github.com:AiryuP/chaos.git
-cd chaos
-git fetch origin
-git switch --track -c develop origin/develop
-pnpm handoff:in
-```
-
-如果已经克隆过仓库：
-
-```powershell
-cd <你的 Chaos 仓库目录>
-git status --short
-git fetch origin
-git switch --track -c develop origin/develop
-pnpm handoff:in
-```
-
-如果本机已经存在 `develop`，把 `git switch --track ...` 改成 `git switch develop`。任何脏工作区、分叉或拉取失败都应停止，不要强制覆盖。
-
-## 7. 防跑偏检查清单
-
-每次 PR 前检查：
-
-- 是否属于当前 milestone？
-- 是否符合本地优先？
-- 是否没有把 AI 变成主界面？
-- 是否没有把大纲/故事线塞回编辑页边栏？
-- 是否没有引入不必要依赖？
-- 是否没有做无关重构？
-- 是否有验收命令？
-- 是否更新 `docs/PROGRESS.md`？
-- 重大选择是否更新 `docs/DECISIONS.md`？
-
-## 8. 最实用的沟通方式
-
-每次开始一个新任务时，给 Codex 三样东西：
-
-1. 当前目标。
-2. 明确不做什么。
-3. 希望跑哪些验收命令。
-
-如果你只想讨论方案，不想改代码，要明确说“先不要改代码”。否则 Codex 会默认推进实现。
+如果本地存在修改、分支发生分叉、拉取失败或依赖恢复失败，应停止自动操作并向用户说明。用户确认处理方式后再继续。

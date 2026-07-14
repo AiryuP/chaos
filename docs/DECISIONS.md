@@ -1,249 +1,114 @@
-﻿# Chaos Decision Log
+# Chaos 决策记录
 
-本文件记录重要产品和技术决策。以后如果想推翻某个方向，先在这里追加新的决策记录，不要在代码中隐式改变方向。
+本文件只记录需要长期追溯的重要产品和技术选择。较新的决定可以取代较早决定；用户明确确认的新决定优先。普通进度和实现清单不写在这里。
 
-## 2026-07-07 - 新项目使用 Electron + Vue 技术栈
+## 2026-07-07 - 使用 Electron + Vue 技术栈
 
-Decision: 新项目 Chaos 使用 Electron + Vue 3 + TypeScript + Vite，而不是继续使用旧项目的 Tauri 2 + React + Rust。
+决定：Chaos 使用 Electron + Vue 3 + TypeScript + Vite，不继续旧项目的 Tauri 2 + React + Rust 组合。
 
-Reason:
+原因：用户更熟悉 Vue；Electron 与 Node.js 文件系统、SQLite、导出和桌面能力的集成路径更直接。
 
-- 用户更熟悉 Vue，对 React 只有少量了解，对 Svelte 没有经验。
-- 新项目需要用户能长期参与判断、验收和维护。
-- Electron 与 Node.js 文件系统、SQLite、导出和桌面能力集成直接，适合快速建立本地写作闭环。
-- 放弃旧栈是为了降低 Rust/Tauri/React 组合带来的协作和实现成本。
+影响：本地能力收敛在 Electron main process，通过 preload 暴露受控 API；旧项目只迁移产品和数据判断，不迁移旧代码。
 
-Consequence:
+## 2026-07-07 - 正文使用 Tiptap / ProseMirror
 
-- 包体和资源占用会高于 Tauri，但开发路径更直接。
-- 本地能力必须收敛在 Electron main process，通过 preload 暴露安全 API。
-- 不迁移旧 React/Tauri/Rust 代码，只迁移产品规则和数据契约。
+决定：章节正文以 ProseMirror JSON 为权威内容，Markdown 作为可读镜像和导出格式。
 
-## 2026-07-07 - 正文继续使用 Tiptap / ProseMirror
+原因：长篇写作未来需要富文本、人物高亮、结构锚点、批注和 AI 证据定位，纯 Markdown 难以稳定承载复杂行内语义。
 
-Decision: 章节正文以 Tiptap / ProseMirror JSON 为权威内容，继续提供 Markdown 镜像和 TXT / Markdown 导出。
+影响：数据库保存 `content_json`，格式为 `prosemirror-json-v1`；导入、导出和未来证据定位围绕该格式转换。
 
-Reason:
+## 2026-07-07 - 使用文件夹 + SQLite 的本地项目结构
 
-- Moqi/Chaos 需要富文本、人物高亮、结构锚点、批注、后续 AI 证据定位。
-- 纯 Markdown 难以稳定维护复杂行内结构。
-- 用户选择 Vue 技术栈时，Tiptap 的 Vue 3 集成比 Lexical 更自然。
-- 旧项目已经围绕 ProseMirror JSON 建立了产品和数据判断。
+决定：每部作品是独立文件夹，`.moqi/project.sqlite` 保存结构化数据，`chapters/` 保存 Markdown 镜像，`exports/` 保存导出结果。
 
-Consequence:
+原因：SQLite 适合结构化查询，Markdown 保持正文可读和可迁移。
 
-- 数据库保存 `content_json`，格式标记为 `prosemirror-json-v1`。
-- Markdown 是镜像，不是事实来源。
-- 导入、导出、AI 证据定位都必须围绕 ProseMirror JSON 做转换和映射。
+影响：SQLite 是事实来源；镜像和导出格式不能被误认为权威保存格式。
 
-## 2026-07-07 - 使用文件夹 + SQLite 的本地优先项目结构
+## 2026-07-07 - AI 默认生成可审核建议
 
-Decision: 每个小说项目是一个文件夹，`.moqi/project.sqlite` 保存结构化数据，`chapters/` 保存 Markdown 镜像，`exports/` 保存导出结果。
+决定：AI 默认不自动覆写人物、伏笔、事件和世界观，结构化建议通过 `MemoryPatch` 交给作者审核。
 
-Reason:
+原因：小说设定是作者资产，长期项目需要证据链和可追溯变更。
 
-- SQLite 适合人物、事件、伏笔、记忆、图谱等结构化查询。
-- Markdown 镜像保证正文可读、可迁移。
-- 纯 TXT / Markdown 不足以承载人物高亮、锚点、MemoryPatch、图谱关系。
+影响：未来 `MemoryPatch` 需要目标、前后差异、证据、置信度和审核状态。具体自动化等级与 Auto Dream 触发方式在实现时再决定。
 
-Consequence:
+## 2026-07-10 - 区分 SQLite 保存与 Markdown 镜像结果
 
-- SQLite 是事实来源。
-- Markdown 是镜像，不是唯一源格式。
-- 导出流程必须清楚区分保存格式和导出格式。
+决定：章节保存以 SQLite 提交结果为准；SQLite 成功但镜像失败时，返回保存成功并附带镜像警告。
 
-## 2026-07-07 - 优先使用 Drizzle 管理 SQLite 访问
+原因：数据库事务和文件系统写入不能组成同一个跨资源原子事务，镜像失败不能被误报为正文未保存。
 
-Decision: SQLite 访问使用 `better-sqlite3`，数据访问和 schema 管理优先使用 Drizzle。
+影响：Renderer 明确展示部分成功状态；镜像和导出文件使用受限路径与原子替换。
 
-Reason:
+## 2026-07-10 - 使用 PRAGMA user_version 管理迁移
 
-- Drizzle 提供类型友好的 schema 定义和查询能力。
-- Chaos 的数据模型会持续增长，需要清晰的迁移和类型边界。
-- Drizzle 与 TypeScript 项目配合自然。
+决定：项目数据库通过 SQLite `PRAGMA user_version` 执行顺序迁移，并拒绝打开高于当前支持版本的数据库。
 
-Consequence:
+原因：本地作品需要长期兼容，`CREATE TABLE IF NOT EXISTS` 无法处理完整升级和不兼容情况。
 
-- 新字段必须同步更新 TypeScript domain type、Drizzle schema、读写映射和测试。
-- 如果 Drizzle 与 Electron 原生模块打包流程冲突，再记录决策并评估 Kysely 或轻量 SQL 层。
+影响：当前 schema 版本为 1；未来 schema 变化需要明确迁移。`chapters_fts` 是 v1 中遗留但未启用的表，搜索实现前需要重新设计。
 
-## 2026-07-07 - AI 默认只生成可审核建议
+## 2026-07-10 - 建立 Electron 本地安全边界
 
-Decision: AI 不默认自动覆写人物、伏笔、事件和世界观，而是生成 `MemoryPatch`。
+决定：应用默认单实例，只接受可信顶层 Renderer 的 IPC，拒绝外部导航、新窗口和权限请求；项目文件同时校验词法路径和真实路径。
 
-Reason:
+原因：需要保护本地小说数据，避免多实例覆盖、preload 能力泄露和链接逃逸项目目录。
 
-- 小说世界观和人物状态是作者资产，自动覆写风险高。
-- 长篇项目需要证据链和可追溯变更。
-- 建立信任比自动化更重要。
+影响：Renderer 保持 sandbox、contextIsolation 和禁用 Node integration；关闭保护由 Renderer 显式握手启用。
 
-Consequence:
+## 2026-07-10 - better-sqlite3 使用 Electron ABI
 
-- MemoryPatch 是 AI 写入结构化记忆的默认入口。
-- Patch 必须有 before/after、证据、目标对象、置信度和状态。
-- 低风险自动写入和全自动写入只作为高级配置预留。
+决定：`better-sqlite3` 始终使用当前 Electron 版本的原生 ABI，Vitest 和 E2E 夹具通过 Electron 的 Node 模式运行。
 
-## 2026-07-09 - v0.1 Bootstrap 使用显式 SQL 初始化项目库
+原因：普通 Node 与 Electron 的原生模块 ABI 不一定一致，反复覆盖绑定会破坏常驻开发环境。
 
-Decision: v0.1 的项目创建 / 打开服务先使用 `better-sqlite3` 执行显式 SQL 初始化 `project_meta`、`chapters` 和 `chapters_fts`。
+影响：开发、测试和 E2E 运行前通过探针检查绑定，仅在不可用时重建。
 
-Reason:
+## 2026-07-10 - 新作品默认进入软件私有作品库
 
-- 当前目标是先打通本地项目文件夹、SQLite 文件、默认章节和 Markdown 镜像这条最小闭环。
-- `chapters_fts` 是 SQLite FTS5 虚拟表，显式 SQL 比过早封装迁移工具更直接。
-- Electron + native SQLite 的运行和打包路径需要先稳定下来，再扩大数据访问抽象。
+决定：新建作品只收集作品信息，由 main process 在 Electron `userData/projects` 下创建内部 ID 目录；用户可以修改以后新作品的存放位置。
 
-Consequence:
+原因：目录选择不应打断创作流程，作品名称也不应受文件夹命名限制。
 
-- Drizzle 仍是后续结构化数据访问的优先方向，不引入 Kysely 或其它数据层。
-- 新增业务表或复杂查询前，应补 Drizzle schema / typed query 层，避免 SQL 分散在 UI 或 IPC 中。
-- renderer 仍不得直接访问 SQLite；所有本地数据能力继续收敛在 main process。
+影响：更改存放位置不静默移动已有作品；书架扫描托管作品库并保留完整已知项目索引；打开已有项目保留独立入口。
 
-## 2026-07-09 - 使用 GitHub 和 Handoff 文档支撑两地开发
+## 2026-07-10 - 跨设备使用 develop 和 GitHub 远端
 
-Decision: Chaos 长期采用 GitHub 远端仓库 + `docs/HANDOFF.md` + `docs/PROGRESS.md` 作为跨设备开发的事实来源。
+决定：`main` 保持稳定，`develop` 作为当前持续开发和跨设备同步分支；GitHub 远端与仓库文档是跨设备事实来源。
 
-Reason:
+原因：需要同步的是源码、依赖锁定和开发事实，不是聊天记录、开发服务、构建缓存或 Electron 用户数据。
 
-- 用户会长期在不同地点、不同机器之间切换开发，需要无缝衔接当前进度。
-- 聊天上下文、dev server 状态、Electron 本地数据和构建产物都不能可靠同步。
-- 每次切换机器时，下一位开发会话必须能从仓库文档判断当前分支、最后验证、下一步任务和已知风险。
+影响：跨设备操作不能自动覆盖脏工作区，也不能静默 `stash`、强制合并或 `reset`。2026-07-14 起取消固定 PR 流程，何时同步到 `main` 由用户决定。
 
-Consequence:
+## 2026-07-14 - 基础本地写作闭环完成
 
-- 每次收工或准备换机器前，必须更新 `docs/HANDOFF.md` 和 `docs/PROGRESS.md`。
-- 未推送到 GitHub 的本地改动不视为已经同步，另一台机器不能假设这些改动存在。
-- 如果必须提交未完成状态，提交信息和 handoff 必须明确标记 WIP，并写清楚阻塞点。
+决定：原 v0.1 参考范围已经完成产品、视觉、交互和工程闭环，不因后续新增需求重新定义其历史状态。
 
-## 2026-07-10 - SQLite 保存成功与 Markdown 镜像同步分开表达
+原因：创建和打开作品、章节写作、SQLite 保存、Markdown 镜像、关闭重开恢复以及 TXT / Markdown 导出已经可用。
 
-Decision: 章节保存以 SQLite 提交结果为准；Markdown 镜像使用受限路径和原子文件替换。SQLite 已成功但镜像失败时，保存操作返回成功并附带镜像警告。
+影响：版本记录继续保留，但不再作为后续开发准入条件。
 
-Reason:
+## 2026-07-14 - 当前数据库继续使用显式 SQL
 
-- SQLite 是正文事实来源，镜像失败不能被错误描述为正文保存失败。
-- 数据库事务和文件系统写入无法组成同一个跨资源原子事务。
-- 明确的部分成功状态可以避免重复保存、版本号误增和作者对持久化结果的误判。
+决定：现阶段继续使用 `better-sqlite3 + 显式 SQL`，不安装 Drizzle，也不把任何 ORM 写成项目规则。
 
-Consequence:
+原因：当前只有项目元数据、章节和一个未启用的 FTS 表；已有显式迁移和查询数量有限、边界清晰。Drizzle 仍需依赖 SQLite 驱动，此时引入会增加第二套 schema 表达和依赖成本，却没有足够复杂的关系查询收益。
 
-- Renderer 显示“正文已保存，但 Markdown 镜像同步失败”，并允许后续保存重试镜像。
-- Markdown 与导出文件均先写同目录临时文件，再原子替换目标文件。
-- 来自数据库的相对路径必须验证不能逃出项目目录。
+影响：人物、事件、伏笔、记忆和图谱真实落库后，如果关联查询、映射重复或迁移成本显著增加，再评估 Drizzle 或其它类型化查询层。该决定取代 2026-07-07 将 Drizzle 设为优先方案的旧决定。
 
-## 2026-07-10 - 使用 PRAGMA user_version 管理项目数据库迁移
+## 2026-07-14 - 用户决策和文档治理规则
 
-Decision: Chaos 项目数据库使用 SQLite `PRAGMA user_version` 作为 schema 迁移版本，按顺序执行显式 SQL 迁移，并拒绝打开由更高版本 Chaos 创建的数据库。
+决定：用户是项目最高决策者。Codex 保留建议权；发现用户需求与旧文档冲突时先说明并确认，确认后执行用户决定并同步所有受影响文档。
 
-Reason:
+原因：版本规则和重复文档曾压过实际需求，且功能完成后只更新部分文件造成了前后矛盾。
 
-- `CREATE TABLE IF NOT EXISTS` 无法处理新增列、数据变换和版本不兼容。
-- 本地小说项目需要长期可打开，迁移规则必须在真实用户数据出现前建立。
-- v0.1 的 schema 仍较小，显式 SQL 比提前引入完整迁移框架更容易验证。
+影响：
 
-Consequence:
-
-- 当前 schema 版本为 1，连接同时启用 WAL、外键和 5 秒 `busy_timeout`。
-- `chapters_fts` 在 v0.2 搜索设计完成前不再写入，避免重复和无法映射的旧索引。
-- 后续每个 schema 变更必须新增迁移和旧版本升级测试。
-
-## 2026-07-10 - v0.1 建立单实例与可信 Renderer 边界
-
-Decision: Chaos 默认只运行一个应用实例，只接受顶层可信 Renderer 发起的 IPC，并拒绝 Renderer 外部导航、新窗口和权限请求。
-
-Reason:
-
-- 多实例同时编辑同一项目会产生最后写入覆盖和镜像竞争。
-- preload 能访问本地项目能力，不能在导航到外部页面后继续暴露给不可信内容。
-- 小说正文属于用户本地资产，应在联网 AI 功能出现前建立安全默认值。
-
-Consequence:
-
-- Electron 保持 `sandbox`、`contextIsolation` 和禁用 Node integration。
-- Renderer 使用 CSP，脚本只允许同源资源；开发环境只额外允许 localhost HMR 连接。
-- 关闭窗口通过 main/renderer 握手处理未保存草稿，错误堆栈不再返回 Renderer。
-
-## 2026-07-10 - better-sqlite3 统一使用 Electron ABI
-
-Decision: `better-sqlite3` 始终构建为当前 Electron 版本的原生 ABI；Vitest 和 E2E 夹具脚本通过 `ELECTRON_RUN_AS_NODE=1` 在 Electron 的 Node 模式中执行。
-
-Reason:
-
-- 普通 Node 24 和 Electron 35 使用不同的 `NODE_MODULE_VERSION`，同一个原生二进制不能同时兼容两者。
-- 在 Node ABI 和 Electron ABI 之间反复覆盖会与用户常驻运行的 dev server 冲突，也容易让工作区停留在错误状态。
-- 单一 Electron ABI 可以让开发运行、单元测试和 E2E 使用同一原生绑定。
-
-Consequence:
-
-- `pnpm dev`、`pnpm test` 和 `pnpm test:e2e` 都会先运行轻量探针，只有绑定不可用时才调用 `@electron/rebuild`。
-- `pnpm test` 使用 Electron Node 模式启动 Vitest，不再运行普通 Node ABI 的 SQLite 测试。
-- Windows 首次重建需要 Python 和 Visual Studio C++ Build Tools；后续探针通过时不会重复编译。
-
-## 2026-07-10 - 新作品默认存入软件私有作品库
-
-Decision: “新建作品”只收集作品名称、作者、题材和简介，由 main process 自动在 Electron `userData/projects` 下创建独立项目目录。用户可以在应用设置中修改以后新作品的存放位置，但新建流程不再弹出目录选择器。
-
-Reason:
-
-- 新建作品是创作业务动作，目录选择不应打断作者填写作品信息和进入写作空间。
-- 默认私有目录可以避免在用户公共文档目录中散落应用管理文件。
-- 作品名称与文件夹名称解耦后，可以安全支持任意作品标题和后续改名。
-- 高级用户仍需要明确、可控的自定义存放位置。
-
-Consequence:
-
-- 每部作品目录使用内部项目 ID，内部继续包含 `.moqi/`、`chapters/` 和 `exports/`。
-- 书架扫描当前托管目录，并保留不截断的已知作品索引，不能只依赖有限条数的“最近项目”。
-- 更改全局存放位置只影响以后创建的作品，不能静默移动已有作品。
-- 自定义设置损坏或目录不可访问时必须明确报错，不能悄悄回退并把作品分散到不同位置。
-- “打开已有作品”继续作为独立入口，用于打开私有作品库之外的项目。
-
-## 2026-07-10 - 跨设备开发使用 develop 与两动作交接
-
-Decision: `main` 保持稳定，`develop` 作为公司和家里两台电脑之间唯一默认的持续开发分支。跨设备切换只定义 `handoff-out` 和 `handoff-in` 两个动作，并通过仓库脚本、交接文档和 GitHub CI 验证。
-
-Reason:
-
-- 两台电脑之间真正需要同步的是源码、测试、文档、依赖锁定和开发上下文，不需要同步运行中的 dev server、构建缓存或 Electron 用户数据。
-- 固定 `develop` 可以让新环境无需猜测当前功能分支，降低交接复杂度。
-- Git commit 只保存在本机，必须 push 并确认远端一致后，另一台电脑才能可靠继续。
-- 聊天记录不能作为必要上下文，重要进度和实现原因必须进入仓库文档、测试或决策记录。
-
-Consequence:
-
-- “我下班了”“我要休息了”映射到 `handoff-out`，授权 Codex检查、更新 handoff、验证、提交和推送 `develop`。
-- “我到家了”“我来公司了”映射到 `handoff-in`，先拒绝脏工作区，再以 `ff-only` 获取 `develop`、恢复依赖并阅读交接文档。
-- 无法安全推送、拉取、恢复依赖或确认远端 commit 时必须停止，不得静默 merge、stash、reset 或覆盖。
-- GitHub Actions 同时验证 `develop` 和 `main`；阶段完成后再通过 PR 将 `develop` 合并到 `main`。
-
-## 2026-07-14 - v0.1 完成验收并进入 v0.2
-
-Decision: `v0.1 Alpha - 基础本地写作闭环` 已完成产品、视觉和交互验收。v0.1 不因后续技术债重新打开；完成仓库关闭门禁并将 `develop` 合并到 `main` 后，v0.2 仍保持未启动，等待用户明确批准。
-
-Reason:
-
-- 新建和打开本地作品、章节写作、SQLite 保存、Markdown 镜像、关闭重开恢复以及 TXT / Markdown 导出已经形成可用闭环。
-- 用户已完成最终视觉和日常交互验收。
-- Drizzle、FTS、备份、安装发布和跨平台 CI 等问题需要明确治理，但不属于 v0.1 验收失败。
-
-Consequence:
-
-- v0.2 后续按章节 CRUD、自动保存、全文搜索、手动快照、统计和检查器体验分批实施，但本次关闭批次不实现任何 v0.2 代码。
-- 在扩大数据库写入前，必须明确 Drizzle 与显式 SQL 的长期边界，并为 `chapters_fts` 建立 schema v2 迁移。
-- 项目备份、安装器数据保留、签名更新和跨平台支持作为独立风险跟踪，不得被误称为已经实现。
-
-## 2026-07-14 - v0.1 关闭门禁补强本地安全边界
-
-Decision: 项目数据库、Markdown 镜像和导出文件在访问前同时执行词法路径与真实路径校验；窗口关闭保护由 Renderer 显式握手启用；未使用的 `drizzle-orm` 不再作为 v0.1 生产依赖。
-
-Reason:
-
-- 只检查 `..` 和绝对路径不能阻止项目内符号链接或 Windows 目录联接指向项目外部。
-- `did-finish-load` 只能证明页面加载完成，不能证明 preload 与 Vue 已注册未保存关闭监听。
-- v0.1 使用显式 `better-sqlite3` SQL，没有源码依赖 Drizzle；继续携带命中 High 公告的未使用包没有运行价值。
-
-Consequence:
-
-- 数据库提供的 `markdown_path` 也视为不可信输入，任何项目文件访问都必须确认真实目标仍位于真实项目根目录内。
-- Renderer 只有在关闭监听注册后才启用 main process 拦截；重载、渲染进程退出或组件卸载时撤销保护，初始化失败不会让窗口无法关闭。
-- Drizzle 仍是 v0.2 数据层的优先评估方向，但扩大持久化代码前必须重新确认方案并安装当时无已知漏洞的版本。
+- Milestone 和版本号只作为进度参考；超出参考范围时提示影响，由用户决定。
+- 删除 `docs/DEFINITION_OF_DONE.md` 以及文档中的强制验证、完成和固定 PR 规则。
+- 将版本范围和进度参考统一收敛到 `ROADMAP.md`，删除重复的 `MILESTONES.md`。
+- `PROGRESS.md` 只记录当前实现，`UX_FLOWS.md` 记录当前用户行为，`HANDOFF.md` 只记录跨设备交接，`DECISIONS.md` 只记录重要选择。
+- 功能新增、修改、删除或行为发生变化时，在同一次任务内检查并更新所有实际受影响文档。
+- handoff 脚本和 CI 是否简化留待用户单独决定。
