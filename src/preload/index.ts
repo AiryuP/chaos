@@ -20,6 +20,8 @@ const chaosApi: ChaosApi = {
 
     return () => ipcRenderer.removeListener(IPC_CHANNELS.requestClose, listener)
   },
+  enableCloseGuard: () => ipcRenderer.send(IPC_CHANNELS.enableCloseGuard),
+  disableCloseGuard: () => ipcRenderer.send(IPC_CHANNELS.disableCloseGuard),
   confirmClose: () => ipcRenderer.send(IPC_CHANNELS.confirmClose)
 }
 

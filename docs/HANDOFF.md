@@ -4,14 +4,14 @@
 
 ## Current Snapshot
 
-- Last updated: 2026-07-10
-- Current milestone: `v0.1 Alpha - 基础本地写作闭环`
+- Last updated: 2026-07-14
+- Current milestone: none; v0.1 is accepted and closing at repository level, while v0.2 has not started.
 - Stable branch: `main`
 - Active development branch: `develop`
 - Remote: `origin` -> `git@github.com:AiryuP/chaos.git`
 - Remote source of truth: latest `origin/develop` after `handoff-out`.
 - Working tree expectation after handoff-out: clean, with local `HEAD` equal to `origin/develop`.
-- Visual verification: the final UI changes in this batch have not been visually accepted by the user yet.
+- v0.1 status: product, visual and interaction acceptance completed on 2026-07-14.
 
 ## Completed In This Batch
 
@@ -41,6 +41,13 @@
 - Made the shelf scan the active managed library and retain the complete known-project index instead of truncating discovery to 12 recent records.
 - Added fixed `develop` branch handoff rules, safe `handoff-out` / `handoff-in` PowerShell scripts and natural-language triggers in `AGENTS.md`.
 - Expanded GitHub Actions to verify `develop`, run Electron E2E separately and retain failed Playwright diagnostics.
+- Replaced native Chromium scrollbars with a restrained global scrollbar style and preserved system styling in forced-colors mode.
+- Completed user-led visual and interaction acceptance and formally closed the v0.1 product scope.
+- Preserved edits made during an in-flight chapter save and prevented stale saves from continuing close or export actions.
+- Added real-path containment checks for project databases, Markdown mirrors and exports, including directory-link regression tests.
+- Made the Renderer explicitly enable the close guard only after registering its listener, with reload/crash fallback to native close behavior.
+- Made Electron E2E cleanup wait for normal application shutdown before deleting fixtures; two consecutive runs passed without Windows `EPERM`.
+- Removed the unused vulnerable `drizzle-orm` production dependency; v0.2 must select and install a current safe data-layer version if Drizzle is adopted.
 
 ## Verification
 
@@ -58,7 +65,10 @@ Results:
 - Production build: Electron main, preload and renderer passed.
 - PowerShell handoff scripts: parser check passed; `handoff-out` completed its branch, safety, lint, typecheck, unit test and build gates.
 - GitHub Actions: the first `develop` run for implementation commit `6be1d23` passed `verify` and Electron E2E: `https://github.com/AiryuP/chaos/actions/runs/29078975878`.
-- Final UI visual acceptance: pending user verification.
+- Scrollbar refinement checks on 2026-07-14: lint, typecheck and production build passed.
+- Final v0.1 visual and interaction acceptance: passed by user on 2026-07-14.
+- v0.1 closing fixes on 2026-07-14: lint, typecheck, 10 unit-test files / 31 tests, production build, two consecutive Electron E2E runs and production dependency audit passed.
+- Final `pnpm handoff:out:full` passed after the closing fixes, including diff checks, lint, typecheck, unit tests, build and Electron E2E.
 
 ## Native Module Notes
 
@@ -71,10 +81,9 @@ Results:
 
 ## Next Work
 
-1. User verifies the new-project dialog, application storage settings, library, writing, dirty dialog and export UI in the existing dev environment.
-2. Fix any visual or interaction issues found during that verification without expanding v0.1 scope.
-3. On the home computer, perform the first manual clone/fetch of `develop`, then run `pnpm handoff:in` and confirm the restored context.
-4. After v0.1 is accepted, merge `develop` into `main`, then begin v0.2 with chapter add/rename/delete/reorder and autosave.
+1. Complete the v0.1 repository gate, push `develop`, and merge it into `main` through a verified PR.
+2. Keep v0.2 unstarted until the user explicitly opens the next milestone.
+3. When v0.2 is approved later, resolve the Drizzle direction and schema v2 contract before adding database writes.
 
 ## Known Remaining Issues
 
@@ -85,6 +94,10 @@ Results:
 - Changing the default storage location affects future projects only; automatic migration of existing projects is intentionally not implemented in v0.1.
 - A future installer/uninstaller must preserve the default private project library unless the user explicitly chooses to remove it.
 - `.moqi` remains the project metadata directory name; changing it later requires an explicit migration decision.
+- Drizzle is not installed in v0.1 because the services use explicit `better-sqlite3` statements; v0.2 must resolve this direction and install a current safe version before expanding persistence code.
+- There is no formal project backup/restore workflow. Manual snapshots and Markdown mirrors must not be presented as full backups.
+- Installer, code signing and automatic updates are not implemented. Any future uninstaller must preserve project data by default.
+- Windows is the only authoritative CI platform. macOS and Linux are not supported claims yet.
 
 ## Start Work Checklist
 

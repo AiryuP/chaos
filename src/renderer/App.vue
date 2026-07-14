@@ -8,6 +8,7 @@ import { useAppStore } from './stores/app'
 
 const appStore = useAppStore()
 let removeCloseListener: (() => void) | undefined
+let disableCloseGuard: (() => void) | undefined
 
 const exitDialogTitle = computed(() =>
   appStore.pendingExitAction === 'close-window' ? '关闭 Chaos 前保存吗？' : '返回书架前保存吗？'
@@ -17,11 +18,19 @@ onMounted(() => {
   void appStore.loadAppInfo()
   void appStore.loadRecentProjects()
 
-  removeCloseListener = window.chaos?.onCloseRequested(() => appStore.requestWindowClose())
+  const chaosApi = window.chaos
+
+  if (chaosApi) {
+    removeCloseListener = chaosApi.onCloseRequested(() => appStore.requestWindowClose())
+    chaosApi.enableCloseGuard()
+    disableCloseGuard = () => chaosApi.disableCloseGuard()
+  }
+
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
 
 onBeforeUnmount(() => {
+  disableCloseGuard?.()
   removeCloseListener?.()
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })

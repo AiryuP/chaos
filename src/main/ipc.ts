@@ -16,10 +16,13 @@ import { ProjectService } from './project/ProjectService'
 import { RecentProjectsService } from './recent/RecentProjectsService'
 import { isTrustedIpcSender } from './security'
 import { ProjectLibraryService } from './settings/ProjectLibraryService'
+import {
+  approveWindowClose,
+  disableWindowCloseGuard,
+  enableWindowCloseGuard
+} from './windowCloseGuard'
 
 type IpcHandler<T, TArgs extends unknown[]> = (...args: TArgs) => Promise<T> | T
-
-const approvedCloseWindows = new WeakSet<BrowserWindow>()
 
 export function registerIpcHandlers(): void {
   const projectService = new ProjectService()
@@ -28,18 +31,30 @@ export function registerIpcHandlers(): void {
   const recentProjectsService = new RecentProjectsService(app.getPath('userData'))
   const projectLibraryService = new ProjectLibraryService(app.getPath('userData'))
 
-  ipcMain.on(IPC_CHANNELS.confirmClose, (event) => {
-    if (!isTrustedIpcSender(event)) {
-      return
-    }
+  ipcMain.on(IPC_CHANNELS.enableCloseGuard, (event) => {
+    const window = getTrustedSenderWindow(event)
 
-    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) {
+      enableWindowCloseGuard(window)
+    }
+  })
+
+  ipcMain.on(IPC_CHANNELS.disableCloseGuard, (event) => {
+    const window = getTrustedSenderWindow(event)
+
+    if (window) {
+      disableWindowCloseGuard(window)
+    }
+  })
+
+  ipcMain.on(IPC_CHANNELS.confirmClose, (event) => {
+    const window = getTrustedSenderWindow(event)
 
     if (!window) {
       return
     }
 
-    approvedCloseWindows.add(window)
+    approveWindowClose(window)
     window.close()
   })
 
@@ -126,13 +141,12 @@ export function registerIpcHandlers(): void {
   )
 }
 
-export function consumeApprovedWindowClose(window: BrowserWindow): boolean {
-  if (!approvedCloseWindows.has(window)) {
-    return false
+function getTrustedSenderWindow(event: Electron.IpcMainEvent): BrowserWindow | null {
+  if (!isTrustedIpcSender(event)) {
+    return null
   }
 
-  approvedCloseWindows.delete(window)
-  return true
+  return BrowserWindow.fromWebContents(event.sender)
 }
 
 async function selectExistingProjectPath(): Promise<string | null> {

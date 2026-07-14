@@ -28,6 +28,7 @@ export type AppShell = 'library' | 'project'
 export type AppWorkspaceId = 'library' | 'settings'
 export type ProjectWorkspaceId = (typeof projectWorkspaceItems)[number]['id']
 export type PendingExitAction = 'return-library' | 'close-window'
+export type SaveChapterOutcome = 'saved' | 'stale-draft' | 'failed'
 
 interface SaveNotice {
   tone: 'success' | 'warning'
@@ -169,7 +170,7 @@ export const useAppStore = defineStore('app', {
     async saveAndContinueExit(): Promise<void> {
       const action = this.pendingExitAction
 
-      if (!action || !(await this.saveActiveChapter())) {
+      if (!action || (await this.saveActiveChapter()) !== 'saved') {
         return
       }
 
@@ -365,12 +366,17 @@ export const useAppStore = defineStore('app', {
         this.isUpdatingProjectLibrary = false
       }
     },
-    async saveActiveChapter(): Promise<boolean> {
+    async saveActiveChapter(): Promise<SaveChapterOutcome> {
       const api = getChaosApi()
 
       if (!api) {
         this.errorMessage = LOCAL_API_UNAVAILABLE_MESSAGE
-        return false
+        return 'failed'
+      }
+
+      if (this.isSavingChapter) {
+        this.errorMessage = '章节正在保存，请稍后重试'
+        return 'failed'
       }
 
       const project = this.activeProject
@@ -380,12 +386,12 @@ export const useAppStore = defineStore('app', {
 
       if (!project || !chapter || !content) {
         this.errorMessage = '没有可保存的章节'
-        return false
+        return 'failed'
       }
 
       if (!project.path) {
         this.errorMessage = '当前作品缺少本地路径'
-        return false
+        return 'failed'
       }
 
       this.isSavingChapter = true
@@ -401,23 +407,43 @@ export const useAppStore = defineStore('app', {
 
         if (!result.ok) {
           this.errorMessage = result.error.message
-          return false
+          return 'failed'
         }
 
+        if (
+          this.activeProject?.id !== project.id ||
+          this.activeChapter?.id !== chapter.id ||
+          !this.activeDraft
+        ) {
+          return 'stale-draft'
+        }
+
+        const currentDraft = this.activeDraft
         this.replaceSavedChapter(result.data.chapter)
+        this.lastSavedAt = result.data.chapter.updatedAt
+        const savedMessage = result.data.mirrorSynced
+          ? '正文与 Markdown 镜像已保存'
+          : (result.data.warning ?? '正文已保存，但 Markdown 镜像同步失败')
+
+        if (!documentsEqual(currentDraft, content)) {
+          this.hasUnsavedChanges = !documentsEqual(currentDraft, result.data.chapter.content)
+          this.saveNotice = {
+            tone: result.data.mirrorSynced ? 'success' : 'warning',
+            message: `${savedMessage}；保存期间产生的修改仍未保存`
+          }
+          return 'stale-draft'
+        }
+
         this.activeDraft = cloneDocument(result.data.chapter.content)
         this.hasUnsavedChanges = false
-        this.lastSavedAt = result.data.chapter.updatedAt
-        this.saveNotice = result.data.mirrorSynced
-          ? { tone: 'success', message: '正文与 Markdown 镜像已保存' }
-          : {
-              tone: 'warning',
-              message: result.data.warning ?? '正文已保存，但 Markdown 镜像同步失败'
-            }
-        return true
+        this.saveNotice = {
+          tone: result.data.mirrorSynced ? 'success' : 'warning',
+          message: savedMessage
+        }
+        return 'saved'
       } catch (error) {
         this.errorMessage = toErrorMessage(error)
-        return false
+        return 'failed'
       } finally {
         this.isSavingChapter = false
       }
@@ -430,8 +456,12 @@ export const useAppStore = defineStore('app', {
         return false
       }
 
-      if (this.hasUnsavedChanges && !(await this.saveActiveChapter())) {
-        return false
+      if (this.hasUnsavedChanges) {
+        const saveOutcome = await this.saveActiveChapter()
+
+        if (saveOutcome !== 'saved') {
+          return false
+        }
       }
 
       const projectPath = this.activeProject?.path

@@ -1,10 +1,10 @@
 ﻿# Chaos Progress
 
-最后更新：2026-07-10
+最后更新：2026-07-14
 
 ## Current Milestone
 
-`v0.1 Alpha - 基础本地写作闭环`
+无进行中的产品 Milestone。`v0.1 Alpha` 已完成验收，正在完成仓库关闭；`v0.2 Writing UX` 尚未启动。
 
 ## Done
 
@@ -63,22 +63,29 @@
 - 建立固定 `develop` 跨设备开发分支，并把“我下班了 / 我要休息了”与“我到家了 / 我来公司了”映射为 `handoff-out`、`handoff-in` 两个动作。
 - 增加 PowerShell 交接脚本：离场时检查分支、敏感文件、handoff 和验证；进入时拒绝脏工作区、以 `ff-only` 拉取、恢复锁定依赖并检查 Electron ABI。
 - GitHub Actions 扩展到 `develop`，拆分基础验证与 Electron E2E，并保留失败诊断产物。
+- 统一 Renderer 全局滚动条样式：Chromium / Electron 使用 10px 透明轨道与约 6px 可见滑块，Firefox 使用标准属性，并在强制颜色模式下恢复系统样式。
+- 用户已于 2026-07-14 完成 v0.1 视觉和交互验收；`v0.1 Alpha - 基础本地写作闭环` 正式完成。
+- 修复章节保存竞态：保存期间产生的新编辑不再被旧保存响应覆盖，且存在较新草稿时不会继续关闭或导出。
+- 项目数据库、Markdown 和导出访问增加真实路径边界，拒绝符号链接或 Windows 目录联接将访问导向项目外部。
+- 关闭保护改为 Renderer 显式握手；preload 或 Renderer 初始化失败、重载和崩溃时恢复原生关闭能力。
+- Electron E2E 清理改为等待正常关闭完成后再删除 fixture，连续两次验证未再出现 Windows `EPERM`。
+- 移除 v0.1 未使用且命中 High 公告的 `drizzle-orm` 生产依赖；v0.2 启动前重新确认数据层方案和安全版本。
 
 ## In Progress
 
-- v0.1 本地写作代码闭环已完成，等待用户在常驻 dev 环境中做最终视觉和日常交互验收。
+- v0.1 仓库关闭：完成最终门禁、推送 `develop`，并通过 PR 合并到 `main`。
 
 ## Next
 
-v0.1 收尾任务：
+完成 v0.1 仓库关闭：
 
-- 用户在常驻 Electron dev 环境中验证新建作品对话框、存放设置、书架、写作、未保存确认和导出视觉/交互。
-- 家里电脑首次拉取 `develop` 并执行 `pnpm handoff:in`，确认跨设备恢复流程。
-- v0.1 视觉验收通过后，通过 PR 将 `develop` 合并到 `main`，再进入 v0.2 章节 CRUD 与自动保存。
+- 完整门禁通过后提交并推送 `develop`。
+- 通过 PR 将 `develop` 合并到 `main`，确认 CI 通过并保持稳定分支可追踪。
+- v0.2 保持未启动，等待用户后续明确指令。
 
 ## Known Issues
 
-- 数据访问层暂定 Drizzle；如与 Electron 打包或 better-sqlite3 原生模块流程冲突，需要记录决策后调整。
+- 数据访问层仍优先评估 Drizzle，但 v0.1 不携带未使用依赖；v0.2 扩大数据库写入前重新确认方案并安装无已知漏洞的版本。
 - 当前书架层已接入真实项目创建 / 打开和最近项目记录，但还没有删除、归档、搜索或标签。
 - 更改作品存放位置只影响以后创建的作品，v0.1 不自动迁移已有作品。
 - 默认作品位于应用私有数据目录；未来接入安装包时，卸载流程必须默认保留作品数据。
@@ -88,6 +95,9 @@ v0.1 收尾任务：
 - `新建作品`、`打开本地项目` 依赖 Electron preload 暴露的 `window.chaos`；普通浏览器打开 Vite 页面时只能显示本地能力不可用提示。
 - `.moqi` 继续作为当前项目目录名；如要改名，必须在真实 Alpha 用户数据出现前记录迁移决策。
 - Windows 首次为 Electron 重建 `better-sqlite3` 需要 Python 与 Visual Studio C++ Build Tools；绑定就绪后测试和 E2E 不再重复编译。
+- 当前没有正式的项目备份和恢复能力；手动版本快照不能替代完整项目备份。
+- 安装器、代码签名和自动更新尚未建立；未来卸载流程必须默认保留软件私有作品库和自定义作品目录。
+- CI 当前以 Windows 为权威平台；在正式承诺 macOS / Linux 支持前不把其它平台描述为已支持。
 
 ## Verification Commands
 
@@ -137,7 +147,33 @@ node_modules\.bin\playwright.CMD test --list
 - `pnpm test:e2e`：1 个 Electron 私有项目创建与本地写作闭环测试通过。
 - PowerShell `handoff-in` / `handoff-out`：语法解析通过；`handoff-out` 门禁和干净工作区下的远端 `handoff-in` 恢复均验证通过。
 - 首次 `develop` GitHub Actions 已通过：基础验证与 Electron E2E 均成功，运行记录为 `https://github.com/AiryuP/chaos/actions/runs/29078975878`。
-- 新 UI 的最终视觉验收未由 Codex 执行，按项目规则交由用户确认。
+- 新 UI 的最终视觉和交互验收已由用户于 2026-07-14 确认通过。
+
+最终结果（2026-07-14，全局滚动条精修）：
+
+- `pnpm lint`：通过。
+- `pnpm typecheck`：通过。
+- `pnpm build`：main、preload、renderer 构建通过。
+- 未启动或重启 dev server；滚动条视觉和交互已由用户确认通过。
+
+阶段结果（2026-07-14，v0.1 工程关闭修复 - 编辑器阶段）：
+
+- `pnpm lint`：通过。
+- `pnpm typecheck`：通过。
+- `pnpm test`：9 个测试文件、25 个测试通过，其中 4 个覆盖正常保存和保存期间继续编辑。
+- `pnpm build`：main、preload、renderer 构建通过。
+- 未启动或重启 dev server；剩余四个 Electron / 依赖阻塞项尚未处理。
+
+阶段结果（2026-07-14，v0.1 工程关闭修复 - Electron 阶段）：
+
+- `pnpm lint`：通过。
+- `pnpm typecheck`：通过。
+- `pnpm test`：10 个测试文件、31 个测试通过，覆盖真实路径链接与关闭握手状态。
+- `pnpm build`：main、preload、renderer 构建通过。
+- `pnpm test:e2e`：连续两次通过，未再出现 fixture 清理 `EPERM`。
+- `pnpm audit --prod`：通过，无已知生产依赖漏洞。
+- `pnpm handoff:out:full`：通过，包含 diff、lint、typecheck、31 个单元测试、build 和 Electron E2E。
+- 未启动或重启 dev server；五个 v0.1 工程关闭阻塞项已全部修复并通过本地门禁。
 
 端到端检查按需运行：
 

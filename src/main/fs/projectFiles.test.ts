@@ -1,10 +1,14 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { atomicWriteTextFile, resolveProjectFile } from './projectFiles'
+import {
+  atomicWriteTextFile,
+  resolveProjectFile,
+  resolveProjectFileForAccess
+} from './projectFiles'
 
 const tempRoots: string[] = []
 
@@ -30,6 +34,19 @@ describe('project file safety', () => {
 
     expect(() => resolveProjectFile(root, '../outside.md')).toThrow('outside')
     expect(() => resolveProjectFile(root, join(root, 'absolute.md'))).toThrow('relative path')
+  })
+
+  it('rejects project paths whose real parent resolves outside through a directory link', () => {
+    const root = createTempRoot()
+    const outside = createTempRoot()
+    const linkedDirectory = join(root, 'chapters')
+
+    symlinkSync(outside, linkedDirectory, process.platform === 'win32' ? 'junction' : 'dir')
+
+    expect(() => resolveProjectFileForAccess(root, 'chapters/escaped.md')).toThrow(
+      'resolves outside'
+    )
+    expect(existsSync(join(outside, 'escaped.md'))).toBe(false)
   })
 })
 

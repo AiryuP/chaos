@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
+import type { ChildProcess } from 'node:child_process'
 
 test.setTimeout(90_000)
 
@@ -35,14 +36,14 @@ test('creates a durable save/reopen/export loop', async () => {
       '雨落在旧屋檐上。'
     )
 
-    await closeApp(app)
+    await closeAppThroughUi(app)
     app = undefined
     app = await launchApp(userDataPath)
     page = await openRecentProject(app)
     await expect(page.locator('.writing-editor')).toContainText('不要开门。')
   } finally {
     if (app) {
-      await closeApp(app)
+      await closeAppForCleanup(app)
     }
     removeFixtureRoot(root)
     rmSync(fixtureManifestPath, { force: true })
@@ -50,15 +51,33 @@ test('creates a durable save/reopen/export loop', async () => {
 })
 
 async function launchApp(userDataPath: string): Promise<ElectronApplication> {
-  return electron.launch({
-    args: ['.'],
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      CHAOS_USER_DATA_PATH: userDataPath,
-      ELECTRON_RENDERER_URL: ''
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const app = await electron.launch({
+      args: ['.'],
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CHAOS_USER_DATA_PATH: userDataPath,
+        ELECTRON_RENDERER_URL: ''
+      }
+    })
+
+    try {
+      const page = await app.firstWindow()
+      await page.waitForLoadState('domcontentloaded', { timeout: 15_000 })
+      await page.locator('.app-frame').waitFor({ state: 'visible', timeout: 15_000 })
+      return app
+    } catch (error) {
+      lastError = error
+      await forceCloseApp(app)
     }
-  })
+
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Chaos did not create a ready window')
 }
 
 async function createPrivateProject(page: Page, userDataPath: string): Promise<string> {
@@ -88,7 +107,7 @@ async function createPrivateProject(page: Page, userDataPath: string): Promise<s
   return projectPath
 }
 
-async function closeApp(app: ElectronApplication): Promise<void> {
+async function closeAppThroughUi(app: ElectronApplication): Promise<void> {
   const page = app.windows()[0]
 
   if (!page || page.isClosed()) {
@@ -115,6 +134,31 @@ async function closeApp(app: ElectronApplication): Promise<void> {
   await appClosed
 }
 
+async function forceCloseApp(app: ElectronApplication): Promise<void> {
+  const childProcess = app.process()
+
+  if (hasProcessExited(childProcess)) {
+    return
+  }
+
+  const processExited = waitForProcessExit(childProcess)
+
+  if (!childProcess.killed) {
+    childProcess.kill()
+  }
+
+  await processExited
+}
+
+async function closeAppForCleanup(app: ElectronApplication): Promise<void> {
+  try {
+    await closeAppThroughUi(app)
+  } catch {
+    await app.close().catch(() => undefined)
+    await waitForProcessExit(app.process())
+  }
+}
+
 function removeFixtureRoot(root: string): void {
   const resolvedTempPath = resolve(tmpdir())
   const resolvedRoot = resolve(root)
@@ -129,7 +173,30 @@ function removeFixtureRoot(root: string): void {
     throw new Error('Refusing to remove an invalid E2E fixture path')
   }
 
-  rmSync(resolvedRoot, { recursive: true, force: true })
+  rmSync(resolvedRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+}
+
+function hasProcessExited(childProcess: ChildProcess): boolean {
+  return childProcess.exitCode !== null || childProcess.signalCode !== null
+}
+
+function waitForProcessExit(childProcess: ChildProcess): Promise<void> {
+  if (hasProcessExited(childProcess)) {
+    return Promise.resolve()
+  }
+
+  return new Promise<void>((resolvePromise, rejectPromise) => {
+    const timeout = setTimeout(() => {
+      childProcess.removeListener('exit', handleExit)
+      rejectPromise(new Error('Electron process did not exit after it was terminated'))
+    }, 10_000)
+    const handleExit = (): void => {
+      clearTimeout(timeout)
+      resolvePromise()
+    }
+
+    childProcess.once('exit', handleExit)
+  })
 }
 
 async function openRecentProject(app: ElectronApplication): Promise<Page> {

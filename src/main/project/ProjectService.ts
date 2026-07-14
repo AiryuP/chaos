@@ -16,6 +16,7 @@ import { initializeProjectDatabase } from '../db/schema'
 import {
   atomicWriteTextFile,
   resolveProjectFile,
+  resolveProjectFileForAccess,
   type WriteTextFile
 } from '../fs/projectFiles'
 
@@ -83,7 +84,11 @@ export class ProjectService {
       mkdirSync(paths.chaptersPath, { recursive: true })
       mkdirSync(paths.exportsPath, { recursive: true })
 
-      const db = openDatabase(paths.databasePath)
+      const databasePath = resolveProjectFileForAccess(
+        paths.rootPath,
+        `${PROJECT_DIR}/${DATABASE_FILE}`
+      )
+      const db = openDatabase(databasePath)
 
       try {
         initializeProjectDatabase(db)
@@ -110,7 +115,7 @@ export class ProjectService {
 
       return this.openProjectAt(paths.rootPath)
     } catch (error) {
-      cleanupFailedCreation(paths, existingPaths, defaultMarkdownPath)
+      cleanupFailedCreation(paths, existingPaths)
       throw error
     }
   }
@@ -126,7 +131,11 @@ export class ProjectService {
       throw new Error('This folder does not contain .moqi/project.sqlite')
     }
 
-    const db = openDatabase(paths.databasePath)
+    const databasePath = resolveProjectFileForAccess(
+      paths.rootPath,
+      `${PROJECT_DIR}/${DATABASE_FILE}`
+    )
+    const db = openDatabase(databasePath)
 
     try {
       initializeProjectDatabase(db)
@@ -198,7 +207,11 @@ export class ProjectService {
       throw new Error('This folder does not contain .moqi/project.sqlite')
     }
 
-    const db = openDatabase(paths.databasePath)
+    const databasePath = resolveProjectFileForAccess(
+      paths.rootPath,
+      `${PROJECT_DIR}/${DATABASE_FILE}`
+    )
+    const db = openDatabase(databasePath)
 
     try {
       initializeProjectDatabase(db)
@@ -391,7 +404,7 @@ function writeChapterMarkdown(
   const body = prosemirrorToMarkdown(chapter.content)
   const markdown = body.length > 0 ? `# ${chapter.title}\n\n${body}\n` : `# ${chapter.title}\n`
 
-  writeTextFile(resolveProjectFile(rootPath, chapter.markdownPath), markdown)
+  writeTextFile(resolveProjectFileForAccess(rootPath, chapter.markdownPath), markdown)
 }
 
 interface ExistingProjectPaths {
@@ -412,16 +425,16 @@ function captureExistingPaths(paths: ReturnType<typeof getProjectPaths>): Existi
 
 function cleanupFailedCreation(
   paths: ReturnType<typeof getProjectPaths>,
-  existingPaths: ExistingProjectPaths,
-  markdownPath: string
+  existingPaths: ExistingProjectPaths
 ): void {
-  for (const filePath of [
-    markdownPath,
-    `${paths.databasePath}-wal`,
-    `${paths.databasePath}-shm`,
-    paths.databasePath
+  for (const projectRelativePath of [
+    'chapters/001.md',
+    `${PROJECT_DIR}/${DATABASE_FILE}-wal`,
+    `${PROJECT_DIR}/${DATABASE_FILE}-shm`,
+    `${PROJECT_DIR}/${DATABASE_FILE}`
   ]) {
     try {
+      const filePath = resolveProjectFileForAccess(paths.rootPath, projectRelativePath)
       rmSync(filePath, { force: true })
     } catch {
       // Keep the original creation error if cleanup cannot remove a reserved file.

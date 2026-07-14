@@ -8,7 +8,7 @@ import type { SaveChapterInput, SaveChapterOutput } from '../../shared/ipc'
 import { initializeProjectDatabase } from '../db/schema'
 import {
   atomicWriteTextFile,
-  resolveProjectFile,
+  resolveProjectFileForAccess,
   type WriteTextFile
 } from '../fs/projectFiles'
 
@@ -37,7 +37,10 @@ export class ChapterService {
     const projectPath = resolve(requireText(input?.projectPath, 'Project path is required'))
     const chapterId = requireText(input?.chapterId, 'Chapter id is required')
     const content = requireDocument(input?.content)
-    const databasePath = resolveProjectFile(projectPath, `${PROJECT_DIR}/${DATABASE_FILE}`)
+    const databasePath = resolveProjectFileForAccess(
+      projectPath,
+      `${PROJECT_DIR}/${DATABASE_FILE}`
+    )
 
     if (!existsSync(databasePath)) {
       throw new Error('This folder does not contain .moqi/project.sqlite')
@@ -185,7 +188,7 @@ function writeChapterMarkdown(
 ): void {
   const body = prosemirrorToMarkdown(chapter.content)
   const markdown = body.length > 0 ? `# ${chapter.title}\n\n${body}\n` : `# ${chapter.title}\n`
-  const markdownPath = resolveProjectFile(rootPath, chapter.markdownPath)
+  const markdownPath = resolveProjectFileForAccess(rootPath, chapter.markdownPath)
 
   writeTextFile(markdownPath, markdown)
 }

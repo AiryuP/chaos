@@ -2,8 +2,13 @@ import { app, BrowserWindow, Menu, session } from 'electron'
 import { join, resolve } from 'node:path'
 
 import { IPC_CHANNELS } from '../shared/ipc'
-import { consumeApprovedWindowClose, registerIpcHandlers } from './ipc'
+import { registerIpcHandlers } from './ipc'
 import { isTrustedRendererUrl } from './security'
+import {
+  consumeApprovedWindowClose,
+  disableWindowCloseGuard,
+  isWindowCloseGuardEnabled
+} from './windowCloseGuard'
 
 const isDevelopment = !app.isPackaged
 let mainWindow: BrowserWindow | null = null
@@ -67,8 +72,6 @@ function createMainWindow(): void {
       preload: join(__dirname, '../preload/index.cjs')
     }
   })
-  let rendererReady = false
-
   mainWindow = window
   window.setMenu(null)
   window.removeMenu()
@@ -81,16 +84,15 @@ function createMainWindow(): void {
       event.preventDefault()
     }
   })
-  window.webContents.once('did-finish-load', () => {
-    rendererReady = true
-  })
+  window.webContents.on('did-start-loading', () => disableWindowCloseGuard(window))
+  window.webContents.on('render-process-gone', () => disableWindowCloseGuard(window))
 
   window.once('ready-to-show', () => window.show())
   window.on('close', (event) => {
     if (
       consumeApprovedWindowClose(window) ||
       window.webContents.isDestroyed() ||
-      !rendererReady
+      !isWindowCloseGuardEnabled(window)
     ) {
       return
     }
@@ -99,6 +101,8 @@ function createMainWindow(): void {
     window.webContents.send(IPC_CHANNELS.requestClose)
   })
   window.on('closed', () => {
+    disableWindowCloseGuard(window)
+
     if (mainWindow === window) {
       mainWindow = null
     }

@@ -11,6 +11,8 @@ import type {
 export const IPC_CHANNELS = {
   getAppInfo: 'app:get-info',
   requestClose: 'app:request-close',
+  enableCloseGuard: 'app:enable-close-guard',
+  disableCloseGuard: 'app:disable-close-guard',
   confirmClose: 'app:confirm-close',
   getProjectLibrarySettings: 'settings:get-project-library',
   chooseProjectLibrary: 'settings:choose-project-library',
@@ -86,5 +88,7 @@ export interface ChaosApi {
   saveChapter: (input: SaveChapterInput) => Promise<IpcResult<SaveChapterOutput>>
   exportProject: (input: ExportProjectInput) => Promise<IpcResult<ExportProjectOutput>>
   onCloseRequested: (callback: () => void) => () => void
+  enableCloseGuard: () => void
+  disableCloseGuard: () => void
   confirmClose: () => void
 }

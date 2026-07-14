@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -51,6 +51,25 @@ describe('ExportService', () => {
     const exported = new ExportService().exportProject({ projectPath, format: 'txt' })
 
     expect(exported.path).toBe(join(projectPath, 'exports', 'Night_Book.txt'))
+  })
+
+  it('rejects an exports directory link that resolves outside the project', () => {
+    const root = createTempRoot()
+    const outside = createTempRoot()
+    const projectPath = join(root, 'LinkedExportBook')
+
+    new ProjectService().createProjectAt(projectPath, 'Linked Export Book')
+    rmSync(join(projectPath, 'exports'), { recursive: true, force: true })
+    symlinkSync(
+      outside,
+      join(projectPath, 'exports'),
+      process.platform === 'win32' ? 'junction' : 'dir'
+    )
+
+    expect(() => new ExportService().exportProject({ projectPath, format: 'txt' })).toThrow(
+      'resolves outside'
+    )
+    expect(existsSync(join(outside, 'Linked Export Book.txt'))).toBe(false)
   })
 })
 

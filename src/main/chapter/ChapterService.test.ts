@@ -1,4 +1,5 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import Database from 'better-sqlite3'
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -90,6 +91,31 @@ describe('ChapterService', () => {
     expect(projectService.openProjectAt(projectPath).chapters[0].content).toEqual(
       createDraftContent()
     )
+  })
+
+  it('does not write a database-provided markdown path through a directory link', () => {
+    const root = createTempProjectRoot()
+    const outside = createTempProjectRoot()
+    const projectPath = join(root, 'LinkedMirrorBook')
+    const project = new ProjectService().createProjectAt(projectPath, 'Linked Mirror Book')
+    const linkedDirectory = join(projectPath, 'linked')
+    const database = new Database(join(projectPath, '.moqi', 'project.sqlite'))
+
+    symlinkSync(outside, linkedDirectory, process.platform === 'win32' ? 'junction' : 'dir')
+    database
+      .prepare('UPDATE chapters SET markdown_path = ? WHERE id = ?')
+      .run('linked/escaped.md', project.chapters[0].id)
+    database.close()
+
+    const saved = new ChapterService().saveChapter({
+      projectPath,
+      chapterId: project.chapters[0].id,
+      content: createDraftContent()
+    })
+
+    expect(saved.mirrorSynced).toBe(false)
+    expect(saved.warning).toContain('resolves outside')
+    expect(existsSync(join(outside, 'escaped.md'))).toBe(false)
   })
 })
 

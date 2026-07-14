@@ -12,7 +12,7 @@ import type {
 import { initializeProjectDatabase } from '../db/schema'
 import {
   atomicWriteTextFile,
-  resolveProjectFile,
+  resolveProjectFileForAccess,
   type WriteTextFile
 } from '../fs/projectFiles'
 
@@ -32,7 +32,7 @@ export class ExportService {
   exportProject(input: ExportProjectInput): ExportProjectOutput {
     const projectPath = resolve(requireText(input?.projectPath, 'Project path is required'))
     const format = requireFormat(input?.format)
-    const databasePath = resolveProjectFile(projectPath, '.moqi/project.sqlite')
+    const databasePath = resolveProjectFileForAccess(projectPath, '.moqi/project.sqlite')
 
     if (!existsSync(databasePath)) {
       throw new Error('This folder does not contain .moqi/project.sqlite')
@@ -47,7 +47,10 @@ export class ExportService {
       const chapters = readChapters(db)
       const extension = format === 'txt' ? 'txt' : 'md'
       const exportFileName = `${sanitizeFileName(projectName)}.${extension}`
-      const exportPath = resolveProjectFile(projectPath, join('exports', exportFileName))
+      const exportPath = resolveProjectFileForAccess(
+        projectPath,
+        join('exports', exportFileName)
+      )
       const content =
         format === 'txt'
           ? renderPlainTextExport(chapters)

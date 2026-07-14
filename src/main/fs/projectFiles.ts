@@ -1,6 +1,7 @@
 import {
   existsSync,
   mkdirSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -31,6 +32,28 @@ export function resolveProjectFile(rootPath: string, projectRelativePath: string
   return targetPath
 }
 
+export function resolveProjectFileForAccess(
+  rootPath: string,
+  projectRelativePath: string
+): string {
+  const resolvedRoot = resolve(rootPath)
+  const targetPath = resolveProjectFile(resolvedRoot, projectRelativePath)
+
+  if (!existsSync(resolvedRoot)) {
+    throw new Error('Project folder does not exist')
+  }
+
+  const realRoot = realpathSync.native(resolvedRoot)
+  const existingPath = findClosestExistingPath(targetPath, resolvedRoot)
+  const realExistingPath = realpathSync.native(existingPath)
+
+  if (!isPathWithin(realRoot, realExistingPath)) {
+    throw new Error('Project file path resolves outside the project folder')
+  }
+
+  return targetPath
+}
+
 export const atomicWriteTextFile: WriteTextFile = (targetPath, content) => {
   const parentPath = dirname(targetPath)
   const temporaryPath = resolve(
@@ -53,4 +76,45 @@ export const atomicWriteTextFile: WriteTextFile = (targetPath, content) => {
       rmSync(temporaryPath, { force: true })
     }
   }
+}
+
+function findClosestExistingPath(targetPath: string, rootPath: string): string {
+  let currentPath = targetPath
+
+  while (!existsSync(currentPath)) {
+    if (pathsEqual(currentPath, rootPath)) {
+      return rootPath
+    }
+
+    const parentPath = dirname(currentPath)
+
+    if (parentPath === currentPath) {
+      throw new Error('Project file path has no existing parent folder')
+    }
+
+    currentPath = parentPath
+  }
+
+  return currentPath
+}
+
+function isPathWithin(rootPath: string, targetPath: string): boolean {
+  const pathFromRoot = relative(rootPath, targetPath)
+
+  return !(
+    pathFromRoot === '..' ||
+    pathFromRoot.startsWith(`..${sep}`) ||
+    isAbsolute(pathFromRoot)
+  )
+}
+
+function pathsEqual(left: string, right: string): boolean {
+  const normalizedLeft = resolve(left)
+  const normalizedRight = resolve(right)
+
+  if (process.platform === 'win32') {
+    return normalizedLeft.toLocaleLowerCase('en-US') === normalizedRight.toLocaleLowerCase('en-US')
+  }
+
+  return normalizedLeft === normalizedRight
 }
