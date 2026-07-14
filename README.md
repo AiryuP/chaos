@@ -1,45 +1,52 @@
-﻿# Chaos
+# Chaos
 
-Chaos is a local-first desktop editor for long-form fiction. It focuses on reliable writing, structured story memory, visual story planning, export pipelines, and carefully controlled AI assistance.
+Chaos 是一款本地优先的长篇小说桌面编辑器，关注可靠写作、结构化故事资料、视觉规划、导出流程和可控的 AI 辅助。
 
-## Stack
+## 当前能力
 
-- Electron desktop shell
-- Vue 3 + TypeScript + Vite renderer
-- Tiptap / ProseMirror editor
-- Pinia for application state
-- SQLite project store with `better-sqlite3`
-- Drizzle as the preferred database access and migration layer
-- Vitest for unit tests
-- Playwright for end-to-end tests
+- 在软件私有作品库中创建作品，也可以打开已有本地项目。
+- 使用 Tiptap / ProseMirror 编辑章节。
+- 将正文以 ProseMirror JSON 保存到 SQLite。
+- 同步可读的 Markdown 镜像。
+- 导出 TXT 和 Markdown。
+- 关闭并重新打开后恢复已保存内容。
+- 在离开项目或关闭应用时保护未保存草稿。
 
-## First Slice
+## 当前技术栈
 
-The first slice is not an AI dashboard. It is a real local writing loop:
+- Electron
+- Vue 3 + TypeScript + Vite
+- Tiptap / ProseMirror
+- Pinia
+- SQLite + `better-sqlite3`
+- 显式 SQL 查询和 `PRAGMA user_version` 迁移
+- Vitest 与 Playwright
+- pnpm
 
-- Create a local novel project folder
-- Open an existing project folder
-- Write chapters in a Tiptap editor
-- Save chapter content to SQLite as ProseMirror JSON
-- Mirror readable Markdown files into `chapters/`
-- Export TXT / Markdown into `exports/`
-- Reopen the project and recover the last saved state
+Drizzle 当前没有安装，也不是现阶段既定方案。未来数据关系明显变复杂时，再评估是否增加类型化查询层。
 
-## Development
+## 本地开发
 
 ```powershell
 pnpm install
 pnpm dev
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm handoff:in
-pnpm handoff:out
 ```
 
-`better-sqlite3` 使用 Electron 原生 ABI。`pnpm dev`、`pnpm test` 和 `pnpm test:e2e` 会自动检查绑定，只有首次安装或 Electron 版本变化时才重建；Windows 首次重建需要 Python 和 Visual Studio C++ Build Tools。
+仓库还提供 `lint`、`typecheck`、`test`、`build`、`test:e2e` 和跨设备交接命令。这些命令是可用工具，不在文档中作为每项工作的固定完成门槛。
 
-Use `AGENTS.md` and `docs/` as the project source of truth before starting implementation work.
+`better-sqlite3` 使用 Electron 原生 ABI。`pnpm dev`、`pnpm test` 和 `pnpm test:e2e` 会自动检查绑定，仅在绑定不可用时重建。
 
-Cross-device development uses `develop`: `handoff:out` verifies a session before commit/push, while `handoff:in` safely fast-forwards a clean machine, restores frozen dependencies and checks the Electron native binding.
+项目协作原则见 `AGENTS.md`。当前实现见 `docs/PROGRESS.md`，长期方向见 `docs/PRODUCT.md` 和 `docs/ROADMAP.md`。
+
+## 文档入口
+
+- `docs/PRODUCT.md`：产品愿景和长期体验方向。
+- `docs/ROADMAP.md`：版本路线与进度参考。
+- `docs/PROGRESS.md`：当前已经实现和尚未实现的能力。
+- `docs/UX_FLOWS.md`：当前用户流程、系统反馈和失败路径。
+- `docs/ARCHITECTURE.md`：当前架构、工作区状态和目标架构。
+- `docs/DATA_MODEL.md`：已落库模型和未来领域草案。
+- `docs/EDITOR_MODEL.md`：正文与编辑器契约。
+- `docs/DECISIONS.md`：重要产品和技术决定。
+- `docs/HANDOFF.md`：当前跨设备交接状态。
+- `READIT.md`：跨设备操作方法。

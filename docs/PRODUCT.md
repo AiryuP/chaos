@@ -1,4 +1,4 @@
-﻿# Chaos Product Notes
+# Chaos 产品说明
 
 ## 产品定位
 
@@ -6,69 +6,69 @@ Chaos 是一款本地优先的长篇小说桌面编辑器，面向需要长期�
 
 它要解决的问题：
 
-- 长篇章节越写越多后，结构难以把控。
-- 人物状态、关系、伏笔、事件时间线容易遗忘。
-- 普通 AI 助手缺乏持久项目记忆，容易给出不连续建议。
-- 传统写作软件和知识库之间断裂，正文、设定、图谱、AI 建议不在同一套数据中。
+- 长篇章节越来越多后，作品结构难以把控。
+- 人物状态、关系、伏笔和事件时间线容易遗忘。
+- 普通 AI 助手缺乏持续的项目记忆，容易给出前后不一致的建议。
+- 传统写作软件和知识库相互割裂，正文、设定、图谱和 AI 建议不在同一套数据中。
 
-## Interface Direction
+## 界面方向
 
-Chaos should feel closer to a professional writing desk than an AI dashboard.
+Chaos 应当更接近专业写作工作台，而不是 AI 仪表盘。
 
-References:
+主要参考方向：
 
-- Scrivener: project binder, outliner, manuscript-first workflow.
-- Ulysses: quiet three-column writing rhythm and readable editor surface.
-- Obsidian Canvas / Scapple: visual thinking space for relationships and story structure.
+- Scrivener：项目 Binder、Outliner 和以手稿为中心的工作流。
+- Ulysses：安静的三栏写作节奏和易读的编辑区域。
+- Obsidian Canvas / Scapple：用于关系和故事结构的视觉思考空间。
 
-## Ulysses-Inspired Interface Rules
+## Ulysses 风格原则
 
-Chaos borrows Ulysses' writing calm, not its full document model. Ulysses is useful as a UI reference in four ways:
+Chaos 借鉴 Ulysses 的安静写作体验，但不照搬其完整文档模型。
 
-- Visual tone: quiet, modern, low-noise, with text and structure taking priority over decoration.
-- Writing layout: organization column + chapter/binder column + editor, with the editor as the visual center.
-- Interaction principle: keep persistent panels few; show inspectors, metadata, and auxiliary tools only when needed.
-- Control discipline: prefer lists, rows, separators, and compact toolbars over large cards, large radii, and decorative surfaces.
+- 视觉气质：安静、现代、低噪音，让正文和结构优先于装饰。
+- 写作布局：组织栏、章节 / Binder 栏和编辑器，编辑器是视觉中心。
+- 交互原则：尽量减少常驻面板，仅在需要时显示检查器、元数据和辅助工具。
+- 控件原则：优先使用列表、行、分隔线和紧凑工具栏，减少大卡片、大圆角和装饰性表面。
 
-Chaos should not copy Ulysses' library/group/sheet information model directly. Long-form novels need stronger project structure: volumes, chapters, outlines, storylines, memories, exports, and later AI review queues.
+Chaos 不直接复制 Ulysses 的资料库、分组和 Sheet 信息模型。长篇小说需要更明确的项目结构，包括分卷、章节、大纲、故事线、记忆、导出以及未来的 AI 建议审核队列。
 
-Avoid:
+应避免：
 
-- Gradient-heavy landing-page layouts.
-- Oversized AI assistant panels.
-- Decorative cards that reduce writing density.
-- Forcing outline, timeline, memory, and prose into the same cramped screen.
+- 大量渐变的落地页式布局。
+- 占据主界面的超大 AI 助手面板。
+- 降低写作信息密度的装饰性卡片。
+- 把大纲、时间线、记忆和正文强行挤在同一块狭窄区域。
 
-## Workspace Model
+## 工作区模型
 
-Chaos has two shell levels:
+Chaos 有两层界面外壳：
 
-- App shell: library, archive, and global settings. This layer manages books, not book content.
-- Project shell: the workspace inside one opened book. This layer manages writing, structure, story data, export, and project settings.
+- 应用层：书架、归档和全局设置，只管理作品，不直接管理书内内容。
+- 作品层：打开某部作品后的工作空间，管理写作、结构、故事数据、导出和项目设置。
 
-The app shell should stay closer to a local project manager. The project shell should stay closer to a professional writing desk.
+应用层应接近本地项目管理器，作品层应接近专业写作工作台。
 
-Inside a project, Chaos has first-class workspaces:
+作品内部的长期规划包括：
 
-- Writing: manuscript focus with a light inspector.
-- Outline: full-screen chapter and volume structure.
-- Storyline: full-screen timeline, graph canvas, and foreshadowing ledger.
-- Memory: patch review queue and double-domain memory map.
-- Export: TXT / Markdown export in v0.1, with DOCX / EPUB reserved for later.
-- Settings: provider, context, memory write policy, and export choices.
+- 写作：以手稿为中心，配合轻量检查器。
+- 大纲：独立显示章节和分卷结构。
+- 故事线：独立显示时间线、图谱和伏笔账本。
+- 记忆：审核 AI 建议并维护双域记忆。
+- 导出：当前支持 TXT / Markdown，未来扩展 DOCX / EPUB。
+- 设置：长期承载项目、上下文、记忆策略和导出选项。
 
-Outline and storyline are not side widgets. They can occupy the full UI because authors often need to restructure the book without the editor stealing horizontal space.
+大纲和故事线不是编辑器附属小工具。作者需要重构作品时，它们可以独占主界面。
 
-## Local-First Storage
+## 本地优先存储
 
-Chaos 默认在应用私有数据目录中管理作品库，用户新建作品时只填写作品信息，不接触文件系统路径。全局设置允许用户把以后创建的作品改存到自定义目录，但不会静默移动已有作品。
+Chaos 默认在应用私有数据目录中管理作品库。用户新建作品时只填写作品信息，不需要处理文件系统路径。全局设置可以修改以后新作品的存放位置，但不会静默移动已有作品。
 
-书架必须扫描当前托管作品库，并保留完整的已知作品索引；私有存储不能让较早作品因为“最近项目”数量限制而从 UI 中消失。
+书架应扫描当前托管作品库，并保留完整的已知作品索引。私有存储不能让较早作品因为最近项目数量限制而从界面中消失。
 
-每部作品仍是可独立打开和迁移的自包含文件夹：
+每部作品仍是可以独立打开和迁移的自包含文件夹：
 
 ```text
-<application-user-data>/projects/
+<应用用户数据目录>/projects/
   <project-id>/
     .moqi/
       project.sqlite
@@ -79,9 +79,9 @@ Chaos 默认在应用私有数据目录中管理作品库，用户新建作品�
       Novel Project.md
 ```
 
-SQLite is the source of truth for structured story data. Markdown mirrors keep chapters readable and portable.
+SQLite 是结构化故事数据的事实来源。Markdown 镜像用于保持章节可读和可迁移。
 
-## 永久优先级
+## 长期优先级
 
 1. 稳定写作。
 2. 本地保存。
