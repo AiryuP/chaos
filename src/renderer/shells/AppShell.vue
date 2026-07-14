@@ -1,5 +1,15 @@
 <script setup lang="ts">
+import { Archive, BookOpen, Settings } from '@lucide/vue'
+
+import { useAppStore, type AppWorkspaceId } from '../stores/app'
+import AppSettingsWorkspace from '../workspaces/AppSettingsWorkspace.vue'
 import LibraryWorkspace from '../workspaces/LibraryWorkspace.vue'
+
+const appStore = useAppStore()
+
+function selectWorkspace(workspace: AppWorkspaceId): void {
+  appStore.setAppWorkspace(workspace)
+}
 </script>
 
 <template>
@@ -7,31 +17,40 @@ import LibraryWorkspace from '../workspaces/LibraryWorkspace.vue'
     <aside class="app-rail">
       <nav
         class="rail-nav"
-        aria-label="一级导航"
+        aria-label="应用导航"
       >
         <button
           type="button"
-          class="rail-item active"
+          class="rail-item"
+          :class="{ active: appStore.activeAppWorkspace === 'library' }"
+          :aria-current="appStore.activeAppWorkspace === 'library' ? 'page' : undefined"
+          @click="selectWorkspace('library')"
         >
-          书架
+          <BookOpen :size="18" />
+          <span>书架</span>
         </button>
         <button
           type="button"
           class="rail-item"
           disabled
         >
-          归档
+          <Archive :size="18" />
+          <span>归档</span>
         </button>
         <button
           type="button"
           class="rail-item"
-          disabled
+          :class="{ active: appStore.activeAppWorkspace === 'settings' }"
+          :aria-current="appStore.activeAppWorkspace === 'settings' ? 'page' : undefined"
+          @click="selectWorkspace('settings')"
         >
-          设置
+          <Settings :size="18" />
+          <span>设置</span>
         </button>
       </nav>
     </aside>
 
-    <LibraryWorkspace />
+    <LibraryWorkspace v-if="appStore.activeAppWorkspace === 'library'" />
+    <AppSettingsWorkspace v-else />
   </main>
 </template>

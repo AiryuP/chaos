@@ -8,8 +8,7 @@ export function toAppError(error: unknown, fallbackMessage = 'Unexpected applica
   if (error instanceof Error) {
     return {
       message: error.message || fallbackMessage,
-      code: error.name,
-      detail: error.stack
+      code: error.name
     }
   }
 

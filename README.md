@@ -34,6 +34,12 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm handoff:in
+pnpm handoff:out
 ```
 
+`better-sqlite3` 使用 Electron 原生 ABI。`pnpm dev`、`pnpm test` 和 `pnpm test:e2e` 会自动检查绑定，只有首次安装或 Electron 版本变化时才重建；Windows 首次重建需要 Python 和 Visual Studio C++ Build Tools。
+
 Use `AGENTS.md` and `docs/` as the project source of truth before starting implementation work.
+
+Cross-device development uses `develop`: `handoff:out` verifies a session before commit/push, while `handoff:in` safely fast-forwards a clean machine, restores frozen dependencies and checks the Electron native binding.

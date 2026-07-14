@@ -156,6 +156,33 @@ pnpm test:e2e
 - 确认所有需要同步到另一台机器的源码和文档都已准备提交；不要把 `node_modules/`、`out/`、`dist/`、`.pnpm-store/`、真实小说项目文件夹或密钥提交到 GitHub。
 - 如果代码还不能完全通过检查，可以提交明确标记的 WIP，但必须在 `docs/HANDOFF.md` 写明失败命令和阻塞点。
 
+### 固定交接分支
+
+- `main` 是稳定分支。
+- `develop` 是公司和家里两台电脑之间持续开发与交接的固定分支。
+- 除非用户明确改变策略，跨设备继续开发统一从 `develop` 拉取和推送，不自动猜测其它活动分支。
+
+### 一句话交接触发
+
+当用户说“我下班了”“我要休息了”或 `handoff-out` 时，视为明确授权 Codex 执行本次开发离场交接：
+
+1. 确认当前分支是 `develop`，检查 diff、未跟踪文件和敏感/生成文件。
+2. 更新 `docs/HANDOFF.md`；阶段进度变化时同时更新 `docs/PROGRESS.md`。
+3. 运行 `pnpm handoff:out`；涉及 Electron 主闭环时运行 `pnpm handoff:out:full`。
+4. 只暂存本次确认属于项目的源码、测试、配置和文档。
+5. 创建正常提交；若验证无法通过但必须换机器，允许创建明确标记的 WIP 提交，并在 handoff 写明失败命令和阻塞点。
+6. 推送 `develop` 到 `origin`，确认本地 `HEAD` 与 `origin/develop` 一致，并确认工作区干净。
+7. 推送或远端确认失败时，不得宣布交接完成。
+
+当用户说“我到家了”“我来公司了”或 `handoff-in` 时：
+
+1. 运行 `pnpm handoff:in`。脚本会拒绝覆盖脏工作区，只允许 `ff-only` 更新 `develop`，恢复锁定依赖并检查 Electron 原生模块。
+2. 阅读 `AGENTS.md`、`docs/HANDOFF.md`、`docs/PROGRESS.md`、当前 milestone 和相关决策。
+3. 在继续编辑前复述当前目标、已完成内容、明确不做的内容、最近验证结果、已知风险和下一步。
+4. 本地修改、分支分叉、拉取失败或依赖恢复失败时，停止并说明，不自动 stash、merge、reset 或覆盖。
+
+交接只同步开发事实：源码、测试、文档、迁移、锁文件和 CI 状态。不要同步 `node_modules/`、`out/`、dev server 状态、Electron `userData`、真实小说项目或机器私有路径。
+
 ## Git 与进度规则
 
 - 不直接把 `node_modules/`、`dist/`、`out/`、`.pnpm-store/`、Electron 打包产物提交到 GitHub。

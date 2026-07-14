@@ -7,8 +7,9 @@ Chaos 使用 Electron + Vue 3 + TypeScript + Vite 构建。架构目标是：ren
 ```text
 Electron main process
   - 应用窗口生命周期
+  - 软件私有作品库与全局存放位置设置
   - 项目文件夹创建/打开
-  - SQLite 连接和迁移
+  - SQLite 连接和按版本迁移
   - 章节保存与 Markdown 镜像
   - TXT / Markdown 导出
   - 最近项目列表
@@ -19,12 +20,14 @@ Preload
   - 暴露 window.chaos API
   - 做 IPC 参数和返回类型边界
   - 不暴露任意 Node.js 能力
+  - 传递关闭请求，但不直接决定是否放弃未保存内容
 
 Renderer: Vue 3
   - AppShell / ProjectShell UI
   - Tiptap 编辑器
   - Pinia 状态
   - 错误/保存状态展示
+  - 当前章节草稿与未保存状态
   - 通过 window.chaos 调用本地能力
 ```
 
@@ -87,6 +90,7 @@ src/
 - main process 返回 domain object，不返回数据库 row。
 - 错误统一转成 `{ message, code?, detail? }`。
 - renderer 不知道 SQLite 路径和 SQL 细节。
+- SQLite 正文保存成功但 Markdown 镜像失败时，返回成功结果和可展示警告。
 
 ## 本地服务边界
 
@@ -94,11 +98,21 @@ src/
 
 负责：
 
-- 创建项目目录。
+- 根据作品信息在 main process 指定的作品库中创建独立项目目录。
+- 读取托管作品库中的项目摘要，让书架能恢复完整作品列表。
 - 初始化 `.moqi/project.sqlite`。
 - 创建 `chapters/` 和 `exports/`。
 - 打开已有项目。
 - 保存当前项目元数据。
+
+### ProjectLibraryService
+
+负责：
+
+- 默认使用 Electron `userData/projects` 作为软件私有作品库。
+- 原子保存用户自定义的以后新作品存放位置。
+- 显式报告损坏或不可访问的设置，不静默切换到其它目录。
+- 恢复默认私有目录和打开当前目录。
 
 ### ChapterService
 
@@ -116,6 +130,16 @@ src/
 - TXT 导出。
 - Markdown 导出。
 - 为 DOCX / EPUB 保留扩展点。
+- 直接读取 SQLite 有序章节快照，不依赖 Markdown 镜像。
+- 使用受限项目路径和原子文件替换写入 `exports/`。
+
+### Project File Utilities
+
+负责：
+
+- 将项目相对路径解析并限制在项目根目录内。
+- 同目录临时文件写入和原子替换。
+- 为章节镜像、最近项目记录和导出提供一致的文件写入语义。
 
 ### MemoryService
 
@@ -136,3 +160,13 @@ v0.1 不实现真实联网调用，只保留 provider 配置和后续扩展边�
 - preload API 必须白名单化。
 - API Key 不进入 renderer 明文状态。
 - 项目路径输入必须在 main process 里校验。
+- IPC 只接受顶层可信 Renderer 来源。
+- Renderer 禁止外部导航、新窗口和权限请求。
+- 应用默认单实例运行，避免同一用户会话并发编辑。
+
+## Native Module Runtime
+
+- `better-sqlite3` 统一使用当前 Electron 版本的原生 ABI。
+- `scripts/ensure-electron-native.mjs` 会实际创建内存数据库验证绑定，只有失败时才运行 `@electron/rebuild`。
+- Vitest 和 E2E 夹具脚本通过 `scripts/run-electron-node.mjs` 在 `ELECTRON_RUN_AS_NODE=1` 模式中运行。
+- 不在 Node ABI 与 Electron ABI 之间来回覆盖原生模块，避免破坏常驻 dev server。

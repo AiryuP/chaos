@@ -52,6 +52,20 @@ READIT.md
 
 如果任务来自 Issue，把 Issue 编号和内容一起贴上。
 
+更简单的跨设备恢复方式是直接对 Codex 说：
+
+```text
+我到家了
+```
+
+或者：
+
+```text
+我来公司了
+```
+
+Codex 会按 `AGENTS.md` 执行 `handoff-in`：拒绝覆盖本地修改、拉取固定 `develop`、恢复依赖并阅读交接文档。
+
 ## 3. 用 Issue 控制任务
 
 不要说：
@@ -100,11 +114,14 @@ v0.5 Auto Dream - 手动潜意识整理
 
 ## 5. 分支和 PR 规则
 
-不要直接在 `main` 上开发。
+当前两地开发使用固定分支：
 
 ```powershell
-git checkout -b feature/project-open-save
+main     # 稳定分支
+develop  # 公司和家里持续交接的开发分支
 ```
+
+日常开发和跨设备切换都使用 `develop`。阶段完成并通过验收后，再通过 PR 合并到 `main`。
 
 开发完后按改动范围运行必要检查：
 
@@ -125,7 +142,43 @@ PR 描述必须写：
 ## Verification
 ```
 
-## 6. 防跑偏检查清单
+## 6. 两个交接动作
+
+离开当前电脑时，对 Codex 说“我下班了”“我要休息了”或 `handoff-out`。Codex 会更新交接文档、运行检查、提交并推送 `develop`，只有确认远端一致和工作区干净后才算完成。
+
+进入另一台电脑时，对 Codex 说“我到家了”“我来公司了”或 `handoff-in`。Codex 会运行：
+
+```powershell
+pnpm handoff:in
+```
+
+脚本不会自动 stash、merge、reset 或覆盖本地修改，也不会启动或重启 dev server。
+
+### 家里电脑第一次获取当前实现
+
+如果还没有克隆仓库：
+
+```powershell
+git clone git@github.com:AiryuP/chaos.git
+cd chaos
+git fetch origin
+git switch --track -c develop origin/develop
+pnpm handoff:in
+```
+
+如果已经克隆过仓库：
+
+```powershell
+cd <你的 Chaos 仓库目录>
+git status --short
+git fetch origin
+git switch --track -c develop origin/develop
+pnpm handoff:in
+```
+
+如果本机已经存在 `develop`，把 `git switch --track ...` 改成 `git switch develop`。任何脏工作区、分叉或拉取失败都应停止，不要强制覆盖。
+
+## 7. 防跑偏检查清单
 
 每次 PR 前检查：
 
@@ -139,7 +192,7 @@ PR 描述必须写：
 - 是否更新 `docs/PROGRESS.md`？
 - 重大选择是否更新 `docs/DECISIONS.md`？
 
-## 7. 最实用的沟通方式
+## 8. 最实用的沟通方式
 
 每次开始一个新任务时，给 Codex 三样东西：
 

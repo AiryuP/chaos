@@ -1,14 +1,16 @@
 ﻿# Chaos Milestones
 
-## 当前 Milestone
+## 已完成 Milestone
 
 ### v0.1 Alpha - 基础本地写作闭环
+
+状态：已于 2026-07-14 完成产品、视觉和交互验收。
 
 目标：让 Chaos 能作为一个真实的本地小说写作工具启动、创建项目、保存章节、重新打开、导出文本。
 
 ## Scope
 
-- 项目创建和打开。
+- 作品信息创建、软件私有作品库和已有项目打开。
 - Electron main/preload/renderer 的最小安全通信。
 - SQLite schema 作为结构化数据源。
 - 章节正文保存、加载、更新。
@@ -31,25 +33,51 @@
 ## Acceptance Criteria
 
 - `pnpm dev` 能启动桌面开发环境。
-- 新建项目后磁盘出现 `.moqi/project.sqlite`、`chapters/`、`exports/`。
+- 新建作品时不要求选择目录，创建后软件私有作品库中出现 `.moqi/project.sqlite`、`chapters/`、`exports/`。
 - 写入一章后关闭项目，再打开仍能恢复内容。
 - Markdown 镜像与章节标题/正文基本一致。
 - TXT / Markdown 导出文件可打开。
 - 保存失败、打开失败、导出失败时有明确错误提示。
 - `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 通过。
 
-## Next Milestones
+## 下一 Milestone（尚未启动）
 
 ### v0.2 Writing UX - 写作体验打磨
 
-重点：
+状态：等待用户明确启动。
 
-- 章节树 CRUD。
-- 大纲页可编辑。
-- 自动保存状态。
-- 今日字数和章节字数。
-- 手动版本快照。
-- 全文搜索。
+目标：让作者愿意每天打开 Chaos 写作，并能安全维护一部长篇作品的章节结构。
+
+## Scope
+
+- 章节新增、重命名、删除和排序。
+- 大纲页摘要编辑和状态切换。
+- 自动保存状态、今日字数和章节字数。
+- 手动版本快照与明确的恢复路径。
+- 基于 SQLite FTS5 的全文搜索。
+- 可折叠检查器与小屏写作体验。
+
+## Out Of Scope
+
+- AI 联网调用与 MemoryPatch。
+- 故事线、事件和复杂图谱编辑。
+- Auto Dream。
+- DOCX / EPUB 导出。
+- 云同步与协作编辑。
+- 安装器、自动更新和跨平台发布。
+
+## Acceptance Criteria
+
+- 章节新增、重命名、删除、排序后关闭并重新打开仍保持一致。
+- 章节结构变化同步维护 Markdown 镜像，失败时给出明确、不会误导正文状态的提示。
+- 自动保存不会覆盖更新版本或静默丢失草稿，保存状态对作者清晰可见。
+- 今日字数和章节字数在保存、切换章节和重新打开后语义一致。
+- 手动快照可以创建、识别来源并通过明确确认恢复，不把快照误称为完整项目备份。
+- 搜索结果能够稳定映射到章节，并可从现有数据库重建索引。
+- 检查器可折叠，较窄桌面窗口下正文和关键操作不发生遮挡。
+- `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`、相关 Electron E2E 通过。
+
+## Next Milestones
 
 ### v0.3 Storyline - 大纲与故事线工作台
 
